@@ -12,11 +12,12 @@ type Props = {
   pipelineStatus: PipelineStatus;
   inferenceTime: number | null;
   selectedVideo: string | null;
-  onTranscribe: () => void;
   currentTime: number;
   languageLabel: string;
   totalSegments: number;
   errorMessage: string | null;
+  isTtsMuted: boolean;
+  onToggleTtsMute: () => void;
 };
 
 export default function RightPanel({
@@ -26,14 +27,13 @@ export default function RightPanel({
   pipelineStatus,
   inferenceTime,
   selectedVideo,
-  onTranscribe,
   currentTime,
   languageLabel,
   totalSegments,
   errorMessage,
+  isTtsMuted,
+  onToggleTtsMute,
 }: Props) {
-  const canTranscribe = selectedVideo && pipelineStatus !== "processing";
-
   return (
     <div className="flex flex-col h-full p-4 gap-4" style={{ background: "#ffffff" }}>
       <div className="flex items-center justify-between gap-2">
@@ -49,18 +49,19 @@ export default function RightPanel({
         </h1>
 
         <button
-          onClick={onTranscribe}
-          disabled={!canTranscribe}
-          className="px-3 py-1.5 rounded-lg text-xs font-black uppercase tracking-widest transition-all"
+          onClick={onToggleTtsMute}
+          className="px-3 py-1.5 rounded-lg text-xs font-black uppercase tracking-widest transition-all flex items-center gap-1.5"
           style={{
-            background: canTranscribe
-              ? "linear-gradient(90deg, var(--orange), var(--gold))"
-              : "#e5e5e5",
-            color: canTranscribe ? "#fff" : "#aaa",
-            cursor: canTranscribe ? "pointer" : "not-allowed",
+            background: isTtsMuted
+              ? "#e5e5e5"
+              : "linear-gradient(90deg, var(--orange), var(--gold))",
+            color: isTtsMuted ? "#666" : "#fff",
+            cursor: "pointer",
+            boxShadow: isTtsMuted ? "none" : "0 4px 12px rgba(255,106,0,0.25)",
+            border: isTtsMuted ? "1px solid #ccc" : "none",
           }}
         >
-          {pipelineStatus === "processing" ? "Processing…" : "Transcribe"}
+          <span>{isTtsMuted ? "🔇 Voice Dub Off" : "🔊 Voice Dub On"}</span>
         </button>
       </div>
 

@@ -55,11 +55,16 @@ export default function TranscriptionPanel({
   totalSegments = 0,
   errorMessage,
 }: Props) {
-  const bottomRef = useRef<HTMLDivElement>(null);
+  const activeRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [segments]);
+    if (activeRef.current) {
+      activeRef.current.scrollIntoView({
+        behavior: "smooth",
+        block: "nearest",
+      });
+    }
+  }, [currentTime, segments]);
 
   return (
     <div
@@ -95,7 +100,7 @@ export default function TranscriptionPanel({
           />
           {STATUS_LABELS[pipelineStatus]}
           {inferenceTime != null && pipelineStatus === "complete" && (
-            <span style={{ color: "#aaa" }}>· processed in {inferenceTime.toFixed(1)}s</span>
+            <span style={{ color: "#aaa" }}>· {inferenceTime.toFixed(1)}s</span>
           )}
         </span>
       </div>
@@ -121,6 +126,7 @@ export default function TranscriptionPanel({
           segments.map((seg) => (
             <div
               key={seg.id}
+              ref={seg.isActive ? activeRef : null}
               className="flex flex-col gap-0.5 rounded-lg px-2 py-1.5 transition-all"
               style={{
                 background: seg.isActive ? "rgba(255,106,0,0.09)" : "transparent",
@@ -145,7 +151,6 @@ export default function TranscriptionPanel({
             </div>
           ))
         )}
-        <div ref={bottomRef} />
       </div>
     </div>
   );
