@@ -50,6 +50,7 @@ type Props = {
   onPlayChange?: (isPlaying: boolean) => void;
   activeSegmentText?: string;
   volume?: number;
+  statCardElement?: React.ReactNode;
 };
 
 export default function VideoPlayer({
@@ -58,6 +59,7 @@ export default function VideoPlayer({
   onPlayChange,
   activeSegmentText,
   volume = 1.0,
+  statCardElement,
 }: Props) {
   const [videos, setVideos] = useState<string[]>([]);
   const [selected, setSelected] = useState<string | null>(null);
@@ -130,6 +132,7 @@ export default function VideoPlayer({
                 </p>
               </div>
             )}
+            {statCardElement}
           </>
         ) : (
           <div className="w-full h-full flex items-center justify-center" style={{ background: "#f5f5f5" }}>

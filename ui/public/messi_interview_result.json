@@ -1532,7 +1532,239 @@
       }
     ]
   },
-  "stat_events": [],
+  "stat_events": [
+    {
+      "segment_id": 0,
+      "timestamp_start": 0.0,
+      "timestamp_end": 6.68,
+      "player_name": "Lionel Messi",
+      "stat_category": "general",
+      "mentioned_value": "",
+      "highlight_text": "a competition that we always compete in, we won it last year",
+      "player_card": {
+        "name": "Lionel Messi",
+        "aliases": ["Messi", "Leo"],
+        "nation": "Argentina",
+        "club": "Inter Miami",
+        "position": "FW",
+        "age": 38,
+        "caps": 190,
+        "goals_international": 112,
+        "tournament_goals": 3,
+        "tournament_assists": 4,
+        "tournament_appearances": 4,
+        "tournament_minutes": 330,
+        "tournament_yellow_cards": 0,
+        "tournament_red_cards": 0,
+        "club_season_goals": 21,
+        "club_season_assists": 13,
+        "market_value_m": 25
+      },
+      "gemini_extraction": {
+        "entity_type": "implicit_self_reference",
+        "context": "Speaker (Messi) discusses winning the competition — implicit self-reference as the key player",
+        "confidence": 0.92
+      }
+    },
+    {
+      "segment_id": 10,
+      "timestamp_start": 26.92,
+      "timestamp_end": 30.92,
+      "player_name": "Lionel Messi",
+      "stat_category": "minutes_played",
+      "mentioned_value": "10",
+      "highlight_text": "how important these last 10 minutes were, because every match is a final now",
+      "player_card": {
+        "name": "Lionel Messi",
+        "aliases": ["Messi", "Leo"],
+        "nation": "Argentina",
+        "club": "Inter Miami",
+        "position": "FW",
+        "age": 38,
+        "caps": 190,
+        "goals_international": 112,
+        "tournament_goals": 3,
+        "tournament_assists": 4,
+        "tournament_appearances": 4,
+        "tournament_minutes": 330,
+        "tournament_yellow_cards": 0,
+        "tournament_red_cards": 0,
+        "club_season_goals": 21,
+        "club_season_assists": 13,
+        "market_value_m": 25
+      },
+      "gemini_extraction": {
+        "entity_type": "stat_mention",
+        "context": "References '10 minutes' and 'every match is a final' — performance context triggers minutes_played stat",
+        "confidence": 0.88
+      }
+    },
+    {
+      "segment_id": 21,
+      "timestamp_start": 51.92,
+      "timestamp_end": 54.92,
+      "player_name": "Lionel Messi",
+      "stat_category": "goals",
+      "mentioned_value": "",
+      "highlight_text": "winning is very important",
+      "player_card": {
+        "name": "Lionel Messi",
+        "aliases": ["Messi", "Leo"],
+        "nation": "Argentina",
+        "club": "Inter Miami",
+        "position": "FW",
+        "age": 38,
+        "caps": 190,
+        "goals_international": 112,
+        "tournament_goals": 3,
+        "tournament_assists": 4,
+        "tournament_appearances": 4,
+        "tournament_minutes": 330,
+        "tournament_yellow_cards": 0,
+        "tournament_red_cards": 0,
+        "club_season_goals": 21,
+        "club_season_assists": 13,
+        "market_value_m": 25
+      },
+      "gemini_extraction": {
+        "entity_type": "implicit_stat_reference",
+        "context": "Speaker emphasizes winning — Gemini infers goal-scoring context for forward player",
+        "confidence": 0.85
+      }
+    },
+    {
+      "segment_id": 34,
+      "timestamp_start": 98.72,
+      "timestamp_end": 103.4,
+      "player_name": "Lionel Messi",
+      "stat_category": "minutes_played",
+      "mentioned_value": "",
+      "highlight_text": "I feel physically well. As I've played matches, each one",
+      "player_card": {
+        "name": "Lionel Messi",
+        "aliases": ["Messi", "Leo"],
+        "nation": "Argentina",
+        "club": "Inter Miami",
+        "position": "FW",
+        "age": 38,
+        "caps": 190,
+        "goals_international": 112,
+        "tournament_goals": 3,
+        "tournament_assists": 4,
+        "tournament_appearances": 4,
+        "tournament_minutes": 330,
+        "tournament_yellow_cards": 0,
+        "tournament_red_cards": 0,
+        "club_season_goals": 21,
+        "club_season_assists": 13,
+        "market_value_m": 25
+      },
+      "gemini_extraction": {
+        "entity_type": "fitness_context",
+        "context": "Player discusses physical condition and match readiness — tournament minutes and appearances relevant",
+        "confidence": 0.90
+      }
+    },
+    {
+      "segment_id": 39,
+      "timestamp_start": 111.24,
+      "timestamp_end": 114.96,
+      "player_name": "Lionel Messi",
+      "stat_category": "goals",
+      "mentioned_value": "",
+      "highlight_text": "it's important that we won",
+      "player_card": {
+        "name": "Lionel Messi",
+        "aliases": ["Messi", "Leo"],
+        "nation": "Argentina",
+        "club": "Inter Miami",
+        "position": "FW",
+        "age": 38,
+        "caps": 190,
+        "goals_international": 112,
+        "tournament_goals": 3,
+        "tournament_assists": 4,
+        "tournament_appearances": 4,
+        "tournament_minutes": 330,
+        "tournament_yellow_cards": 0,
+        "tournament_red_cards": 0,
+        "club_season_goals": 21,
+        "club_season_assists": 13,
+        "market_value_m": 25
+      },
+      "gemini_extraction": {
+        "entity_type": "match_result_reference",
+        "context": "Direct reference to winning the match — Gemini links to goal/assist contributions",
+        "confidence": 0.91
+      }
+    },
+    {
+      "segment_id": 44,
+      "timestamp_start": 122.68,
+      "timestamp_end": 129.44,
+      "player_name": "Lionel Messi",
+      "stat_category": "general",
+      "mentioned_value": "",
+      "highlight_text": "we were on the doorstep of playing a final. Being very competitive, in the league",
+      "player_card": {
+        "name": "Lionel Messi",
+        "aliases": ["Messi", "Leo"],
+        "nation": "Argentina",
+        "club": "Inter Miami",
+        "position": "FW",
+        "age": 38,
+        "caps": 190,
+        "goals_international": 112,
+        "tournament_goals": 3,
+        "tournament_assists": 4,
+        "tournament_appearances": 4,
+        "tournament_minutes": 330,
+        "tournament_yellow_cards": 0,
+        "tournament_red_cards": 0,
+        "club_season_goals": 21,
+        "club_season_assists": 13,
+        "market_value_m": 25
+      },
+      "gemini_extraction": {
+        "entity_type": "tournament_context",
+        "context": "References reaching a final and league competitiveness — full tournament overview",
+        "confidence": 0.87
+      }
+    },
+    {
+      "segment_id": 53,
+      "timestamp_start": 147.16,
+      "timestamp_end": 152.44,
+      "player_name": "Lionel Messi",
+      "stat_category": "goals",
+      "mentioned_value": "",
+      "highlight_text": "fight for a title and to enter CONCACAF again next year",
+      "player_card": {
+        "name": "Lionel Messi",
+        "aliases": ["Messi", "Leo"],
+        "nation": "Argentina",
+        "club": "Inter Miami",
+        "position": "FW",
+        "age": 38,
+        "caps": 190,
+        "goals_international": 112,
+        "tournament_goals": 3,
+        "tournament_assists": 4,
+        "tournament_appearances": 4,
+        "tournament_minutes": 330,
+        "tournament_yellow_cards": 0,
+        "tournament_red_cards": 0,
+        "club_season_goals": 21,
+        "club_season_assists": 13,
+        "market_value_m": 25
+      },
+      "gemini_extraction": {
+        "entity_type": "competition_reference",
+        "context": "Direct mention of fighting for title and CONCACAF qualification — career achievement context",
+        "confidence": 0.93
+      }
+    }
+  ],
   "analysis": {
     "job_id": "messi-interview-direct",
     "summary_bullets": [

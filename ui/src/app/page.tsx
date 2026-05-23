@@ -7,6 +7,7 @@ import { type DubLanguage } from "@/components/DubSelector";
 import { type TranscriptSegment } from "@/components/TranscriptionPanel";
 import { useTTS } from "@/hooks/useTTS";
 import messiResult from "../../public/messi_interview_result.json";
+import StatCardOverlay from "@/components/StatCardOverlay";
 
 type PipelineStatus = "idle" | "processing" | "complete" | "error";
 
@@ -156,6 +157,12 @@ export default function Home() {
           onPlayChange={setIsPlaying}
           activeSegmentText={activeSegment?.text}
           volume={videoVolume}
+          statCardElement={
+            <StatCardOverlay
+              statEvents={(messiResult.stat_events || []) as any}
+              currentTime={currentTime}
+            />
+          }
         />
       </div>
 
