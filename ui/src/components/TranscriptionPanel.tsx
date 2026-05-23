@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 
 export type TranscriptSegment = {
   id: string;
@@ -27,8 +27,11 @@ const PLACEHOLDER: TranscriptSegment[] = [
   },
 ];
 
-export default function TranscriptionPanel() {
-  const [segments] = useState<TranscriptSegment[]>(PLACEHOLDER);
+type Props = {
+  segments?: TranscriptSegment[];
+};
+
+export default function TranscriptionPanel({ segments = PLACEHOLDER }: Props) {
   const bottomRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {

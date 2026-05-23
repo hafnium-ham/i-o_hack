@@ -1,8 +1,14 @@
 "use client";
 
 import TranscriptionPanel from "./TranscriptionPanel";
+import DubSelector, { type DubLanguage } from "./DubSelector";
 
-export default function RightPanel() {
+type Props = {
+  dubLanguage: DubLanguage;
+  onDubLanguageChange: (lang: DubLanguage) => void;
+};
+
+export default function RightPanel({ dubLanguage, onDubLanguageChange }: Props) {
   return (
     <div className="flex flex-col h-full p-4 gap-4" style={{ background: "#ffffff" }}>
       {/* Header */}
@@ -19,10 +25,13 @@ export default function RightPanel() {
         </h1>
       </div>
 
-      {/* Transcription — fills all remaining space */}
+      {/* Transcription — fills remaining space */}
       <div className="flex-1 min-h-0">
         <TranscriptionPanel />
       </div>
+
+      {/* Dub language selector */}
+      <DubSelector selected={dubLanguage} onChange={onDubLanguageChange} />
     </div>
   );
 }

@@ -32,8 +32,8 @@ function VideoThumbnail({ src }: { src: string }) {
       {thumb ? (
         <img src={thumb} alt="" className="w-full h-full object-cover" />
       ) : (
-        <div className="w-full h-full flex items-center justify-center" style={{ background: "var(--surface-2)" }}>
-          <svg className="opacity-40" width="20" height="20" viewBox="0 0 24 24" fill="white">
+        <div className="w-full h-full flex items-center justify-center" style={{ background: "#e5e5e5" }}>
+          <svg className="opacity-40" width="20" height="20" viewBox="0 0 24 24" fill="#333">
             <path d="M8 5v14l11-7z" />
           </svg>
         </div>
@@ -42,7 +42,12 @@ function VideoThumbnail({ src }: { src: string }) {
   );
 }
 
-export default function VideoPlayer() {
+type Props = {
+  // dubLanguage will be used to switch audio tracks once backend is connected
+  dubLanguage: string;
+};
+
+export default function VideoPlayer({ dubLanguage: _dubLanguage }: Props) {
   const [videos, setVideos] = useState<string[]>([]);
   const [selected, setSelected] = useState<string | null>(null);
 
@@ -68,8 +73,8 @@ export default function VideoPlayer() {
         {selected ? (
           <video key={selected} src={selected} controls className="w-full h-full object-contain" style={{ background: "#000" }} />
         ) : (
-          <div className="w-full h-full flex items-center justify-center" style={{ background: "var(--surface)" }}>
-            <p className="text-sm" style={{ color: "var(--text-secondary)" }}>Loading…</p>
+          <div className="w-full h-full flex items-center justify-center" style={{ background: "#f5f5f5" }}>
+            <p className="text-sm" style={{ color: "#aaa" }}>Loading…</p>
           </div>
         )}
       </div>
