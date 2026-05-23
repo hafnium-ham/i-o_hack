@@ -1,3 +1,10 @@
 .rocketride/
 .DS_Store
 *.mp4
+.env
+__pycache__/
+*.pyc
+.pytest_cache/
+.ruff_cache/
+/tmp/
+

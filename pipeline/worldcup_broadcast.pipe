@@ -1,0 +1,92 @@
+{
+  "name": "worldcup_broadcast_pipeline",
+  "description": "RocketRide wrapper for the World Cup AI Broadcast Assistant. The webhook payload is forwarded to the local FastAPI direct pipeline and the final JSON payload is returned.",
+  "components": [
+    {
+      "id": "webhook_input",
+      "provider": "webhook",
+      "name": "World Cup Interview Webhook",
+      "config": {
+        "hideForm": false,
+        "mode": "Source",
+        "parameters": {
+          "source_type": "file_path",
+          "source_value": "tests/fixtures/sample_interview.wav",
+          "target_languages": ["es", "pt"],
+          "mode": "direct"
+        },
+        "type": "webhook",
+        "name": "World Cup Interview Webhook"
+      },
+      "ui": {
+        "position": {
+          "x": 20,
+          "y": 220
+        },
+        "nodeType": "default",
+        "formDataValid": true
+      }
+    },
+    {
+      "id": "fastapi_pipeline_http",
+      "provider": "tool_http",
+      "name": "Run FastAPI Pipeline",
+      "config": {
+        "method": "POST",
+        "url": "${ROCKETRIDE_FASTAPI_PROCESS_SYNC_URL:-http://localhost:8000/process/sync}",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "bodyMode": "input",
+        "timeoutSeconds": 300,
+        "name": "Run FastAPI Pipeline"
+      },
+      "ui": {
+        "position": {
+          "x": 300,
+          "y": 220
+        },
+        "nodeType": "default",
+        "formDataValid": true
+      },
+      "input": [
+        {
+          "lane": "json",
+          "from": "webhook_input"
+        }
+      ]
+    },
+    {
+      "id": "response_json",
+      "provider": "response_text",
+      "name": "Return Final JSON",
+      "config": {
+        "laneName": "text",
+        "name": "Return Final JSON"
+      },
+      "ui": {
+        "position": {
+          "x": 580,
+          "y": 220
+        },
+        "nodeType": "default",
+        "formDataValid": true
+      },
+      "input": [
+        {
+          "lane": "text",
+          "from": "fastapi_pipeline_http"
+        }
+      ]
+    }
+  ],
+  "project_id": "worldcup-broadcast-assistant",
+  "isLocked": false,
+  "snapToGrid": true,
+  "snapGridSize": [
+    10,
+    10
+  ],
+  "version": 1,
+  "docRevision": 1
+}
