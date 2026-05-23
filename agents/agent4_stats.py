@@ -6,6 +6,7 @@ import re
 from pathlib import Path
 from typing import Any
 
+from utils.api_sports_client import enrich_player_card, is_live_lookup_enabled, redact_api_sports_secret
 from utils.schemas import StatEvent, TranscriptPayload
 
 
@@ -109,10 +110,32 @@ def _mentions_player(text: str, player: dict[str, Any]) -> bool:
     return any(re.search(rf"\b{re.escape(name.lower())}\b", lowered) for name in names)
 
 
+def _safe_enrich_player_card(player: dict[str, Any]) -> dict[str, Any]:
+    try:
+        return enrich_player_card(player)
+    except Exception as exc:
+        return {
+            **player,
+            "api_sports": {
+                "source": "api-sports",
+                "sport": "football",
+                "status": "error",
+                "errors": [
+                    {
+                        "stage": "unexpected",
+                        "message": redact_api_sports_secret(str(exc)),
+                    }
+                ],
+            },
+        }
+
+
 def _extract_local(transcript: TranscriptPayload) -> list[StatEvent]:
     players = load_players()
     events: list[StatEvent] = []
     seen: set[tuple[int, str, str]] = set()
+    live_lookup = is_live_lookup_enabled()
+    enriched_players: dict[str, dict[str, Any]] = {}
 
     for segment in transcript.segments:
         for sentence in _sentences(segment.text):
@@ -127,6 +150,11 @@ def _extract_local(transcript: TranscriptPayload) -> list[StatEvent]:
                     if key in seen:
                         continue
                     seen.add(key)
+                    player_card = player
+                    if live_lookup:
+                        if player["name"] not in enriched_players:
+                            enriched_players[player["name"]] = _safe_enrich_player_card(player)
+                        player_card = enriched_players[player["name"]]
                     events.append(
                         StatEvent(
                             segment_id=segment.id,
@@ -136,7 +164,7 @@ def _extract_local(transcript: TranscriptPayload) -> list[StatEvent]:
                             stat_category=category,
                             mentioned_value=mentioned_value,
                             highlight_text=sentence,
-                            player_card=player,
+                            player_card=player_card,
                         )
                     )
     return events

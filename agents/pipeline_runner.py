@@ -4,6 +4,10 @@ import time
 import uuid
 from concurrent.futures import ThreadPoolExecutor
 
+from utils.env_loader import load_env_files
+
+load_env_files()
+
 from agents import agent1_ingest, agent2_transcribe, agent3_translate, agent4_stats, agent5_analysis, output_assembler
 
 
@@ -25,4 +29,3 @@ def run_pipeline(raw_input: dict) -> dict:
         analysis = analysis_future.result()
 
     return output_assembler.run(audio, transcript, subtitles, stats, analysis, started_at=started_at)
-
