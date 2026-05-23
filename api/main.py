@@ -2,8 +2,12 @@ from __future__ import annotations
 
 import asyncio
 import os
+import traceback
 import uuid
 from typing import Any
+
+from dotenv import load_dotenv
+load_dotenv()
 
 import httpx
 from fastapi import BackgroundTasks, FastAPI, HTTPException
@@ -69,6 +73,7 @@ async def _run_job(job_id: str, request: ProcessRequest) -> None:
     try:
         result = await (_run_rocketride(job_id, request) if request.mode == "rocketride" else _run_direct(job_id, request))
     except Exception as exc:
+        traceback.print_exc()
         JOB_STORE[job_id]["status"] = "error"
         JOB_STORE[job_id]["error"] = str(exc)
         return

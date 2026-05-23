@@ -43,11 +43,11 @@ function VideoThumbnail({ src }: { src: string }) {
 }
 
 type Props = {
-  // dubLanguage will be used to switch audio tracks once backend is connected
   dubLanguage: string;
+  onVideoSelect?: (filename: string) => void;
 };
 
-export default function VideoPlayer({ dubLanguage: _dubLanguage }: Props) {
+export default function VideoPlayer({ dubLanguage: _dubLanguage, onVideoSelect }: Props) {
   const [videos, setVideos] = useState<string[]>([]);
   const [selected, setSelected] = useState<string | null>(null);
 
@@ -56,13 +56,21 @@ export default function VideoPlayer({ dubLanguage: _dubLanguage }: Props) {
       .then((r) => r.json())
       .then((files: string[]) => {
         setVideos(files);
-        if (files.length > 0) setSelected(`/${files[0]}`);
+        if (files.length > 0) {
+          setSelected(`/${files[0]}`);
+          onVideoSelect?.(files[0]);
+        }
       });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  const handleSelect = (file: string) => {
+    setSelected(`/${file}`);
+    onVideoSelect?.(file);
+  };
 
   return (
     <div className="flex flex-col h-full gap-3">
-      {/* Main player */}
       <div
         className="flex-1 rounded-2xl overflow-hidden"
         style={{
@@ -79,7 +87,6 @@ export default function VideoPlayer({ dubLanguage: _dubLanguage }: Props) {
         )}
       </div>
 
-      {/* Thumbnail strip */}
       {videos.length > 0 && (
         <div className="flex gap-3 overflow-x-auto pb-1">
           {videos.map((file) => {
@@ -88,7 +95,7 @@ export default function VideoPlayer({ dubLanguage: _dubLanguage }: Props) {
             return (
               <button
                 key={file}
-                onClick={() => setSelected(src)}
+                onClick={() => handleSelect(file)}
                 className="shrink-0 w-36 h-20 rounded-xl overflow-hidden transition-all"
                 style={{
                   outline: isActive ? "3px solid var(--orange)" : "none",

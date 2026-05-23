@@ -39,14 +39,24 @@ All three must be used — this is a hard requirement from the hackathon organiz
 
 | Technology | Role in this project | Notes |
 |---|---|---|
-| **GMI Cloud** | STT/TTS/translation inference | OpenAI-compatible API; team has credits. Use for Whisper, Gemma, or other hosted models. |
-| **Google AI Studio / Gemini** | Stat detection, NER, translation | Use Gemma 4 or Gemini models via AI Studio API for entity extraction and language tasks. |
+| **GMI Cloud** | Translation, analysis, stat detection | OpenAI-compatible API; team has credits. Models: `google/gemma-4-31b-it` for translation + analysis. |
+| **Google AI Studio / Gemini** | Transcription (STT) | `gemini-2.5-flash` via `google-genai` SDK; used for audio file upload + transcription. |
 | **RocketRide** | AI orchestration & deployment | Open-source runtime; wire the pipeline stages together and deploy via RocketRide. |
+
+## Model Configuration
+
+| Env var | Value | Used by |
+|---|---|---|
+| `GEMINI_TRANSCRIBE_MODEL` | `gemini-2.5-flash` | agent2 — audio → transcript via Google AI Studio |
+| `GMI_TRANSLATION_MODEL` | `google/gemma-4-31b-it` | agent3 — translation via GMI Cloud |
+| `GMI_ANALYSIS_MODEL` | `google/gemma-4-31b-it` | agent5 — sentiment/analysis via GMI Cloud |
 
 ## Development Notes
 
 - Hackathon project — favor working demos over production-grade code.
-- The `ui` branch is the active development branch; `main` is the base.
-- All inference should route through GMI Cloud (OpenAI-compatible endpoint) to use available credits.
-- Language/NLP tasks (stat entity detection, translation) should use Gemini/Gemma via Google AI Studio.
+- The `fastapi-ui` branch is active development; `main` is the base.
+- Transcription routes through Google AI Studio (requires `GOOGLE_API_KEY`) — GMI has no audio upload endpoint.
+- Translation and analysis route through GMI Cloud (requires `GMI_API_KEY`) using `google/gemma-4-31b-it`.
 - RocketRide should be the glue/runtime that orchestrates the audio → transcript → stats → dub pipeline.
+- FastAPI runs on port 8000; Next.js UI runs on port 3000 (bun dev in `ui/`).
+- Set `MOCK_AI=true` to skip all AI calls and return placeholder data for UI testing.

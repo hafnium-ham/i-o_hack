@@ -10,28 +10,29 @@ export type TranscriptSegment = {
   isFinal: boolean;
 };
 
-const PLACEHOLDER: TranscriptSegment[] = [
-  {
-    id: "1",
-    speaker: "Reporter",
-    text: "How do you feel about tonight's performance?",
-    timestamp: "0:12",
-    isFinal: true,
-  },
-  {
-    id: "2",
-    speaker: "Player",
-    text: "I mean, we came out strong. The whole team bought in from tip-off.",
-    timestamp: "0:18",
-    isFinal: true,
-  },
-];
+type PipelineStatus = "idle" | "processing" | "complete" | "error";
 
 type Props = {
   segments?: TranscriptSegment[];
+  pipelineStatus?: PipelineStatus;
+  inferenceTime?: number | null;
 };
 
-export default function TranscriptionPanel({ segments = PLACEHOLDER }: Props) {
+const STATUS_LABELS: Record<PipelineStatus, string> = {
+  idle: "Waiting",
+  processing: "Processing…",
+  complete: "Complete",
+  error: "Error",
+};
+
+const STATUS_COLORS: Record<PipelineStatus, string> = {
+  idle: "#444",
+  processing: "var(--orange)",
+  complete: "#22c55e",
+  error: "#ef4444",
+};
+
+export default function TranscriptionPanel({ segments = [], pipelineStatus = "idle", inferenceTime }: Props) {
   const bottomRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -47,7 +48,6 @@ export default function TranscriptionPanel({ segments = PLACEHOLDER }: Props) {
         boxShadow: "0 0 30px rgba(245,184,0,0.15), 4px 4px 0 var(--orange)",
       }}
     >
-      {/* Header */}
       <div
         className="flex items-center justify-between px-4 py-3"
         style={{
@@ -62,16 +62,30 @@ export default function TranscriptionPanel({ segments = PLACEHOLDER }: Props) {
           Live Transcription
         </span>
         <span className="flex items-center gap-1.5 text-xs font-medium" style={{ color: "var(--text-secondary)" }}>
-          <span className="w-1.5 h-1.5 rounded-full" style={{ background: "#444" }} />
-          Waiting
+          <span
+            className="w-1.5 h-1.5 rounded-full"
+            style={{
+              background: STATUS_COLORS[pipelineStatus],
+              boxShadow: pipelineStatus === "processing" ? `0 0 6px ${STATUS_COLORS.processing}` : "none",
+            }}
+          />
+          {STATUS_LABELS[pipelineStatus]}
+          {inferenceTime != null && pipelineStatus === "complete" && (
+            <span style={{ color: "#aaa" }}>· {inferenceTime.toFixed(1)}s</span>
+          )}
         </span>
       </div>
 
-      {/* Transcript */}
       <div className="flex-1 overflow-y-auto px-4 py-3 space-y-4 text-sm">
-        {segments.length === 0 ? (
+        {pipelineStatus === "processing" && segments.length === 0 ? (
           <p className="text-center mt-8" style={{ color: "#aaa" }}>
-            Transcription will appear here…
+            Transcribing video…
+          </p>
+        ) : segments.length === 0 ? (
+          <p className="text-center mt-8" style={{ color: "#aaa" }}>
+            {pipelineStatus === "error"
+              ? "Transcription failed. Try again."
+              : "Select a video and click Transcribe."}
           </p>
         ) : (
           segments.map((seg) => (
