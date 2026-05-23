@@ -32,8 +32,8 @@ function VideoThumbnail({ src }: { src: string }) {
       {thumb ? (
         <img src={thumb} alt="" className="w-full h-full object-cover" />
       ) : (
-        <div className="w-full h-full bg-[#242424] flex items-center justify-center">
-          <svg className="text-[#444]" width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+        <div className="w-full h-full flex items-center justify-center" style={{ background: "var(--surface-2)" }}>
+          <svg className="opacity-40" width="20" height="20" viewBox="0 0 24 24" fill="white">
             <path d="M8 5v14l11-7z" />
           </svg>
         </div>
@@ -58,31 +58,37 @@ export default function VideoPlayer() {
   return (
     <div className="flex flex-col h-full gap-3">
       {/* Main player */}
-      <div className="flex-1 rounded-xl overflow-hidden bg-[#1a1a1a] border border-[#2e2e2e]">
-        {selected && (
-          <video
-            key={selected}
-            src={selected}
-            controls
-            className="w-full h-full object-contain"
-          />
+      <div
+        className="flex-1 rounded-2xl overflow-hidden"
+        style={{
+          border: "3px solid var(--orange)",
+          boxShadow: "0 0 40px rgba(255,106,0,0.25), 6px 6px 0px var(--gold)",
+        }}
+      >
+        {selected ? (
+          <video key={selected} src={selected} controls className="w-full h-full object-contain" style={{ background: "#000" }} />
+        ) : (
+          <div className="w-full h-full flex items-center justify-center" style={{ background: "var(--surface)" }}>
+            <p className="text-sm" style={{ color: "var(--text-secondary)" }}>Loading…</p>
+          </div>
         )}
       </div>
 
-      {/* Video strip */}
+      {/* Thumbnail strip */}
       {videos.length > 0 && (
         <div className="flex gap-3 overflow-x-auto pb-1">
           {videos.map((file) => {
             const src = `/${file}`;
+            const isActive = selected === src;
             return (
               <button
                 key={file}
                 onClick={() => setSelected(src)}
-                className={`shrink-0 w-36 h-20 rounded-lg overflow-hidden border transition-colors ${
-                  selected === src
-                    ? "border-blue-500"
-                    : "border-[#2e2e2e] hover:border-[#444]"
-                }`}
+                className="shrink-0 w-36 h-20 rounded-xl overflow-hidden transition-all"
+                style={{
+                  outline: isActive ? "3px solid var(--orange)" : "none",
+                  boxShadow: isActive ? "0 0 16px rgba(255,106,0,0.4), 3px 3px 0 var(--gold)" : "none",
+                }}
               >
                 <VideoThumbnail src={src} />
               </button>
