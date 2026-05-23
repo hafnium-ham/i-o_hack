@@ -89,40 +89,56 @@ def _mentioned_value(text: str) -> str:
     return ""
 
 
+def _sentences(text: str) -> list[str]:
+    parts = [part.strip() for part in re.split(r"(?<=[.!?])\s+", text) if part.strip()]
+    return parts or [text]
+
+
+def _categories_for_text(text: str) -> list[str]:
+    lowered = text.lower()
+    return [
+        category
+        for category, terms in STAT_CATEGORIES.items()
+        if any(term in lowered for term in terms)
+    ] or ["general"]
+
+
+def _mentions_player(text: str, player: dict[str, Any]) -> bool:
+    lowered = text.lower()
+    names = [player["name"], *player.get("aliases", [])]
+    return any(re.search(rf"\b{re.escape(name.lower())}\b", lowered) for name in names)
+
+
 def _extract_local(transcript: TranscriptPayload) -> list[StatEvent]:
     players = load_players()
     events: list[StatEvent] = []
     seen: set[tuple[int, str, str]] = set()
 
     for segment in transcript.segments:
-        lowered = segment.text.lower()
-        categories = [
-            category
-            for category, terms in STAT_CATEGORIES.items()
-            if any(term in lowered for term in terms)
-        ] or ["general"]
+        for sentence in _sentences(segment.text):
+            categories = _categories_for_text(sentence)
+            mentioned_value = _mentioned_value(sentence)
 
-        for player in players:
-            names = [player["name"], *player.get("aliases", [])]
-            if not any(re.search(rf"\b{re.escape(name.lower())}\b", lowered) for name in names):
-                continue
-            for category in categories:
-                key = (segment.id, player["name"], category)
-                if key in seen:
+            for player in players:
+                if not _mentions_player(sentence, player):
                     continue
-                seen.add(key)
-                events.append(
-                    StatEvent(
-                        segment_id=segment.id,
-                        timestamp_start=segment.start,
-                        timestamp_end=segment.end,
-                        player_name=player["name"],
-                        stat_category=category,
-                        mentioned_value=_mentioned_value(segment.text),
-                        highlight_text=segment.text,
-                        player_card=player,
+                for category in categories:
+                    key = (segment.id, player["name"], category)
+                    if key in seen:
+                        continue
+                    seen.add(key)
+                    events.append(
+                        StatEvent(
+                            segment_id=segment.id,
+                            timestamp_start=segment.start,
+                            timestamp_end=segment.end,
+                            player_name=player["name"],
+                            stat_category=category,
+                            mentioned_value=mentioned_value,
+                            highlight_text=sentence,
+                            player_card=player,
+                        )
                     )
-                )
     return events
 
 
@@ -130,4 +146,3 @@ def run(transcript_payload: dict) -> dict:
     transcript = TranscriptPayload.model_validate(transcript_payload)
     events = _extract_local(transcript)
     return {"job_id": transcript.job_id, "stat_events": [event.model_dump() for event in events]}
-

@@ -3,6 +3,7 @@ from __future__ import annotations
 import os
 
 from agents import agent3_translate, agent4_stats, agent5_analysis, output_assembler
+from utils.json_helpers import parse_json_object
 
 
 TRANSCRIPT = {
@@ -52,6 +53,27 @@ def test_stats_extracts_named_players() -> None:
     assert "Lionel Messi" in names
 
 
+def test_stats_keeps_sentence_level_stat_attribution() -> None:
+    transcript = {
+        **TRANSCRIPT,
+        "segments": [
+            {
+                "id": 0,
+                "start": 0.0,
+                "end": 8.0,
+                "speaker": "PLAYER",
+                "text": "I scored three goals tonight. Lionel Messi and Kylian Mbappe pushed the tempo all match.",
+                "confidence": 0.95,
+            }
+        ],
+        "full_text": "I scored three goals tonight. Lionel Messi and Kylian Mbappe pushed the tempo all match.",
+    }
+    result = agent4_stats.run(transcript)
+    events = result["stat_events"]
+    assert {event["stat_category"] for event in events} == {"general"}
+    assert all(event["mentioned_value"] == "" for event in events)
+
+
 def test_analysis_mock_shape() -> None:
     os.environ["MOCK_AI"] = "true"
     result = agent5_analysis.run(TRANSCRIPT)
@@ -71,3 +93,7 @@ def test_output_assembler_shape() -> None:
     assert final["job_id"] == "test-001"
     assert "processing_time_seconds" in final
 
+
+def test_parse_json_object_recovers_prefixed_json() -> None:
+    assert parse_json_object('Result:\n```json\n{"ok": true}\n```') == {"ok": True}
+    assert parse_json_object('Here is the payload: [{"id": 1}]') == [{"id": 1}]

@@ -10,5 +10,16 @@ def parse_json_object(raw: str) -> Any:
     if text.startswith("```"):
         text = re.sub(r"^```(?:json)?", "", text, flags=re.IGNORECASE).strip()
         text = re.sub(r"```$", "", text).strip()
-    return json.loads(text)
-
+    try:
+        return json.loads(text)
+    except json.JSONDecodeError:
+        decoder = json.JSONDecoder()
+        for index, char in enumerate(text):
+            if char not in "[{":
+                continue
+            try:
+                parsed, _ = decoder.raw_decode(text[index:])
+                return parsed
+            except json.JSONDecodeError:
+                continue
+        raise

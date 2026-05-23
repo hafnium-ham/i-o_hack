@@ -1,83 +1,92 @@
 {
-  "version": "1.0",
   "name": "worldcup_broadcast_pipeline",
-  "description": "World Cup AI Broadcast Assistant backend pipeline",
-  "nodes": [
+  "description": "RocketRide wrapper for the World Cup AI Broadcast Assistant. The webhook payload is forwarded to the local FastAPI direct pipeline and the final JSON payload is returned.",
+  "components": [
     {
-      "id": "source",
-      "type": "Source",
-      "subtype": "Webhook",
-      "config": { "endpoint": "/process", "method": "POST" },
-      "outputs": ["raw_input"]
+      "id": "webhook_input",
+      "provider": "webhook",
+      "name": "World Cup Interview Webhook",
+      "config": {
+        "hideForm": false,
+        "mode": "Source",
+        "parameters": {
+          "source_type": "file_path",
+          "source_value": "tests/fixtures/sample_interview.wav",
+          "target_languages": ["es", "pt"],
+          "mode": "direct"
+        },
+        "type": "webhook",
+        "name": "World Cup Interview Webhook"
+      },
+      "ui": {
+        "position": {
+          "x": 20,
+          "y": 220
+        },
+        "nodeType": "default",
+        "formDataValid": true
+      }
     },
     {
-      "id": "agent1_ingest",
-      "type": "Tool",
-      "subtype": "Python",
-      "config": { "script": "agents/agent1_ingest.py", "function": "run" },
-      "inputs": ["raw_input"],
-      "outputs": ["audio_payload"]
+      "id": "fastapi_pipeline_http",
+      "provider": "tool_http",
+      "name": "Run FastAPI Pipeline",
+      "config": {
+        "method": "POST",
+        "url": "${ROCKETRIDE_FASTAPI_PROCESS_SYNC_URL:-http://localhost:8000/process/sync}",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "bodyMode": "input",
+        "timeoutSeconds": 300,
+        "name": "Run FastAPI Pipeline"
+      },
+      "ui": {
+        "position": {
+          "x": 300,
+          "y": 220
+        },
+        "nodeType": "default",
+        "formDataValid": true
+      },
+      "input": [
+        {
+          "lane": "json",
+          "from": "webhook_input"
+        }
+      ]
     },
     {
-      "id": "agent2_transcribe",
-      "type": "Tool",
-      "subtype": "Python",
-      "config": { "script": "agents/agent2_transcribe.py", "function": "run" },
-      "inputs": ["audio_payload"],
-      "outputs": ["transcript_payload"]
-    },
-    {
-      "id": "agent3_translate",
-      "type": "Tool",
-      "subtype": "Python",
-      "config": { "script": "agents/agent3_translate.py", "function": "run" },
-      "inputs": ["transcript_payload"],
-      "outputs": ["subtitle_payload"]
-    },
-    {
-      "id": "agent4_stats",
-      "type": "Tool",
-      "subtype": "Python",
-      "config": { "script": "agents/agent4_stats.py", "function": "run" },
-      "inputs": ["transcript_payload"],
-      "outputs": ["stat_events_payload"]
-    },
-    {
-      "id": "agent5_analysis",
-      "type": "Tool",
-      "subtype": "Python",
-      "config": { "script": "agents/agent5_analysis.py", "function": "run" },
-      "inputs": ["transcript_payload"],
-      "outputs": ["analysis_payload"]
-    },
-    {
-      "id": "output_assembler",
-      "type": "Tool",
-      "subtype": "Python",
-      "config": { "script": "agents/output_assembler.py", "function": "run" },
-      "inputs": ["audio_payload", "transcript_payload", "subtitle_payload", "stat_events_payload", "analysis_payload"],
-      "outputs": ["final_output"]
-    },
-    {
-      "id": "sink",
-      "type": "Infrastructure",
-      "subtype": "Output",
-      "config": { "format": "json" },
-      "inputs": ["final_output"]
+      "id": "response_json",
+      "provider": "response_text",
+      "name": "Return Final JSON",
+      "config": {
+        "laneName": "text",
+        "name": "Return Final JSON"
+      },
+      "ui": {
+        "position": {
+          "x": 580,
+          "y": 220
+        },
+        "nodeType": "default",
+        "formDataValid": true
+      },
+      "input": [
+        {
+          "lane": "text",
+          "from": "fastapi_pipeline_http"
+        }
+      ]
     }
   ],
-  "lanes": [
-    { "from": "source.raw_input", "to": "agent1_ingest.raw_input" },
-    { "from": "agent1_ingest.audio_payload", "to": "agent2_transcribe.audio_payload" },
-    { "from": "agent2_transcribe.transcript_payload", "to": "agent3_translate.transcript_payload" },
-    { "from": "agent2_transcribe.transcript_payload", "to": "agent4_stats.transcript_payload" },
-    { "from": "agent2_transcribe.transcript_payload", "to": "agent5_analysis.transcript_payload" },
-    { "from": "agent1_ingest.audio_payload", "to": "output_assembler.audio_payload" },
-    { "from": "agent2_transcribe.transcript_payload", "to": "output_assembler.transcript_payload" },
-    { "from": "agent3_translate.subtitle_payload", "to": "output_assembler.subtitle_payload" },
-    { "from": "agent4_stats.stat_events_payload", "to": "output_assembler.stat_events_payload" },
-    { "from": "agent5_analysis.analysis_payload", "to": "output_assembler.analysis_payload" },
-    { "from": "output_assembler.final_output", "to": "sink.final_output" }
-  ]
+  "project_id": "worldcup-broadcast-assistant",
+  "isLocked": false,
+  "snapToGrid": true,
+  "snapGridSize": [
+    10,
+    10
+  ],
+  "version": 1,
+  "docRevision": 1
 }
-

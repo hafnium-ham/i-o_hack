@@ -14,7 +14,14 @@ JOBS_DIR = Path(os.getenv("JOBS_DIR", "/tmp/jobs"))
 
 
 def _run_command(args: list[str]) -> subprocess.CompletedProcess[str]:
-    return subprocess.run(args, capture_output=True, text=True, check=True)
+    try:
+        return subprocess.run(args, capture_output=True, text=True, check=True)
+    except subprocess.CalledProcessError as exc:
+        command = " ".join(args)
+        stderr = exc.stderr.strip() if exc.stderr else ""
+        stdout = exc.stdout.strip() if exc.stdout else ""
+        detail = stderr or stdout or f"exit code {exc.returncode}"
+        raise RuntimeError(f"Command failed: {command}\n{detail}") from exc
 
 
 def _require_binary(name: str) -> None:
@@ -106,4 +113,3 @@ def run(raw_input: dict) -> dict:
         target_languages=request.target_languages,
     )
     return payload.model_dump()
-

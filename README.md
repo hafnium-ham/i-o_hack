@@ -39,6 +39,7 @@ Required for live AI mode:
 
 - `GOOGLE_API_KEY`: Gemini transcription
 - `GMI_API_KEY`: GMI Cloud OpenAI-compatible inference
+- `GMI_ORGANIZATION_ID`: optional GMI organization header for multi-organization accounts
 
 Useful local defaults:
 
@@ -73,7 +74,17 @@ For async frontend flow, use `POST /process`, then poll `GET /jobs/{job_id}`.
 
 ## RocketRide
 
-The RocketRide graph is in `pipeline/worldcup_broadcast.pipe`.
+The RocketRide graph is in `pipeline/worldcup_broadcast.pipe`. It is a thin RocketRide wrapper around the working FastAPI pipeline:
+
+1. Start FastAPI:
+
+```bash
+MOCK_AI=true uvicorn api.main:app --host 0.0.0.0 --port 8000
+```
+
+2. Open `pipeline/worldcup_broadcast.pipe` in RocketRide and run it.
+
+The graph accepts the same JSON payload as `POST /process/sync`, forwards it to `ROCKETRIDE_FASTAPI_PROCESS_SYNC_URL` (default `http://localhost:8000/process/sync`), and returns the final JSON payload. `pipeline/reference_builder_sample.pipe` is the original builder export kept only as a reference.
 
 FastAPI can forward to RocketRide by setting:
 
