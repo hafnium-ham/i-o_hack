@@ -132,7 +132,7 @@ Live interview processing:
 MOCK_AI=false .venv/bin/python scripts/process_interview_direct.py
 ```
 
-The default source is `ui/public/messi-interview.mp4`, and the default output is `outputs/messi_interview_result.json`. Live mode requires `GOOGLE_API_KEY` and `GMI_API_KEY`; without them, rerun with `--mock-ai` to verify ingest, subtitles, stats, analysis shape, and final assembly without external AI calls.
+The default source is `ui/public/messi-interview.mp4`, and the default output is `outputs/messi_interview_result.json`. Without `GOOGLE_API_KEY`, live mode uses local faster-whisper for transcription and `GMI_API_KEY` for translation/analysis. Rerun with `--mock-ai` to verify ingest, subtitles, stats, analysis shape, and final assembly without external AI calls.
 
 ## RocketRide
 

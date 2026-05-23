@@ -13,6 +13,10 @@ type Props = {
   inferenceTime: number | null;
   selectedVideo: string | null;
   onTranscribe: () => void;
+  currentTime: number;
+  languageLabel: string;
+  totalSegments: number;
+  errorMessage: string | null;
 };
 
 export default function RightPanel({
@@ -23,6 +27,10 @@ export default function RightPanel({
   inferenceTime,
   selectedVideo,
   onTranscribe,
+  currentTime,
+  languageLabel,
+  totalSegments,
+  errorMessage,
 }: Props) {
   const canTranscribe = selectedVideo && pipelineStatus !== "processing";
 
@@ -57,7 +65,15 @@ export default function RightPanel({
       </div>
 
       <div className="flex-1 min-h-0">
-        <TranscriptionPanel segments={segments} pipelineStatus={pipelineStatus} inferenceTime={inferenceTime} />
+        <TranscriptionPanel
+          segments={segments}
+          pipelineStatus={pipelineStatus}
+          inferenceTime={inferenceTime}
+          currentTime={currentTime}
+          languageLabel={languageLabel}
+          totalSegments={totalSegments}
+          errorMessage={errorMessage}
+        />
       </div>
 
       <DubSelector selected={dubLanguage} onChange={onDubLanguageChange} />

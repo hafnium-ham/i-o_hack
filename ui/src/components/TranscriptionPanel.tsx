@@ -7,6 +7,10 @@ export type TranscriptSegment = {
   speaker?: string;
   text: string;
   timestamp?: string;
+  endTimestamp?: string;
+  start: number;
+  end: number;
+  isActive: boolean;
   isFinal: boolean;
 };
 
@@ -16,12 +20,16 @@ type Props = {
   segments?: TranscriptSegment[];
   pipelineStatus?: PipelineStatus;
   inferenceTime?: number | null;
+  currentTime?: number;
+  languageLabel?: string;
+  totalSegments?: number;
+  errorMessage?: string | null;
 };
 
 const STATUS_LABELS: Record<PipelineStatus, string> = {
   idle: "Waiting",
-  processing: "Processing…",
-  complete: "Complete",
+  processing: "Processing full video",
+  complete: "Streaming with video",
   error: "Error",
 };
 
@@ -32,7 +40,21 @@ const STATUS_COLORS: Record<PipelineStatus, string> = {
   error: "#ef4444",
 };
 
-export default function TranscriptionPanel({ segments = [], pipelineStatus = "idle", inferenceTime }: Props) {
+function formatClock(seconds: number): string {
+  const m = Math.floor(seconds / 60);
+  const s = Math.floor(seconds % 60);
+  return `${m}:${s.toString().padStart(2, "0")}`;
+}
+
+export default function TranscriptionPanel({
+  segments = [],
+  pipelineStatus = "idle",
+  inferenceTime,
+  currentTime = 0,
+  languageLabel = "English",
+  totalSegments = 0,
+  errorMessage,
+}: Props) {
   const bottomRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -55,12 +77,14 @@ export default function TranscriptionPanel({ segments = [], pipelineStatus = "id
           background: "#ffffff",
         }}
       >
-        <span
-          className="text-xs font-black uppercase tracking-widest"
-          style={{ color: "var(--orange)" }}
-        >
-          Live Transcription
-        </span>
+        <div className="flex flex-col">
+          <span className="text-xs font-black uppercase tracking-widest" style={{ color: "var(--orange)" }}>
+            {languageLabel} Transcription
+          </span>
+          <span className="text-[11px] font-medium" style={{ color: "var(--text-secondary)" }}>
+            {formatClock(currentTime)} · {segments.length}/{totalSegments || 0} lines
+          </span>
+        </div>
         <span className="flex items-center gap-1.5 text-xs font-medium" style={{ color: "var(--text-secondary)" }}>
           <span
             className="w-1.5 h-1.5 rounded-full"
@@ -71,25 +95,38 @@ export default function TranscriptionPanel({ segments = [], pipelineStatus = "id
           />
           {STATUS_LABELS[pipelineStatus]}
           {inferenceTime != null && pipelineStatus === "complete" && (
-            <span style={{ color: "#aaa" }}>· {inferenceTime.toFixed(1)}s</span>
+            <span style={{ color: "#aaa" }}>· processed in {inferenceTime.toFixed(1)}s</span>
           )}
         </span>
       </div>
 
-      <div className="flex-1 overflow-y-auto px-4 py-3 space-y-4 text-sm">
-        {pipelineStatus === "processing" && segments.length === 0 ? (
+      <div className="flex-1 overflow-y-auto px-4 py-3 space-y-3 text-sm">
+        {pipelineStatus === "processing" ? (
           <p className="text-center mt-8" style={{ color: "#aaa" }}>
-            Transcribing video…
+            Transcribing and translating the full video. Captions will stream with playback when ready.
+          </p>
+        ) : pipelineStatus === "error" ? (
+          <p className="text-center mt-8" style={{ color: "#ef4444" }}>
+            {errorMessage || "Transcription failed. Try again."}
+          </p>
+        ) : pipelineStatus === "complete" && segments.length === 0 ? (
+          <p className="text-center mt-8" style={{ color: "#aaa" }}>
+            Press play or scrub the video to reveal the translated transcript in sync.
           </p>
         ) : segments.length === 0 ? (
           <p className="text-center mt-8" style={{ color: "#aaa" }}>
-            {pipelineStatus === "error"
-              ? "Transcription failed. Try again."
-              : "Select a video and click Transcribe."}
+            Select a video and click Transcribe.
           </p>
         ) : (
           segments.map((seg) => (
-            <div key={seg.id} className="flex flex-col gap-0.5">
+            <div
+              key={seg.id}
+              className="flex flex-col gap-0.5 rounded-lg px-2 py-1.5 transition-all"
+              style={{
+                background: seg.isActive ? "rgba(255,106,0,0.09)" : "transparent",
+                borderLeft: seg.isActive ? "3px solid var(--orange)" : "3px solid transparent",
+              }}
+            >
               <div className="flex items-baseline gap-2">
                 {seg.speaker && (
                   <span className="text-xs font-black uppercase tracking-wide" style={{ color: "var(--gold)" }}>
@@ -98,7 +135,7 @@ export default function TranscriptionPanel({ segments = [], pipelineStatus = "id
                 )}
                 {seg.timestamp && (
                   <span className="text-xs" style={{ color: "var(--text-secondary)" }}>
-                    {seg.timestamp}
+                    {seg.timestamp}{seg.endTimestamp ? `-${seg.endTimestamp}` : ""}
                   </span>
                 )}
               </div>

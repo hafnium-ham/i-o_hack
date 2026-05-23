@@ -24,6 +24,48 @@ Keep timestamps as float seconds and include filler words.
 """
 
 
+def _transcribe_with_local_whisper(audio: AudioPayload) -> dict:
+    try:
+        from faster_whisper import WhisperModel
+    except ImportError as exc:
+        raise RuntimeError("Install 'faster-whisper' to use local transcription.") from exc
+
+    model_name = os.getenv("LOCAL_WHISPER_MODEL", "tiny")
+    device = os.getenv("LOCAL_WHISPER_DEVICE", "auto")
+    compute_type = os.getenv("LOCAL_WHISPER_COMPUTE_TYPE", "int8")
+    language = os.getenv("LOCAL_WHISPER_LANGUAGE") or None
+
+    model = WhisperModel(model_name, device=device, compute_type=compute_type)
+    segments_iter, info = model.transcribe(
+        audio.audio_path,
+        beam_size=int(os.getenv("LOCAL_WHISPER_BEAM_SIZE", "1")),
+        vad_filter=os.getenv("LOCAL_WHISPER_VAD", "true").lower() in {"1", "true", "yes"},
+        language=language,
+    )
+
+    segments = []
+    for index, segment in enumerate(segments_iter):
+        text = segment.text.strip()
+        if not text:
+            continue
+        segments.append(
+            {
+                "id": index,
+                "start": float(segment.start),
+                "end": float(segment.end),
+                "speaker": "AUDIO",
+                "text": text,
+                "confidence": 0.9,
+            }
+        )
+
+    return {
+        "detected_language": getattr(info, "language", None) or language or "en",
+        "segments": segments,
+        "full_text": " ".join(segment["text"] for segment in segments),
+    }
+
+
 def _transcribe_with_gemini(audio: AudioPayload) -> dict:
     try:
         from google import genai
@@ -95,8 +137,12 @@ def run(audio_payload: dict) -> dict:
 
     if os.getenv("MOCK_AI", "").lower() in {"1", "true", "yes"}:
         result = _mock_transcript(audio)
-    else:
+    elif os.getenv("TRANSCRIBE_PROVIDER", "auto").lower() in {"local", "local_whisper", "whisper"}:
+        result = _transcribe_with_local_whisper(audio)
+    elif os.getenv("GOOGLE_API_KEY"):
         result = _transcribe_with_gemini(audio)
+    else:
+        result = _transcribe_with_local_whisper(audio)
 
     segments = [TranscriptSegment.model_validate(seg) for seg in result.get("segments", [])]
     full_text = result.get("full_text") or " ".join(seg.text for seg in segments)

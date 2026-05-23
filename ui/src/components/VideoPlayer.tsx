@@ -30,6 +30,8 @@ function VideoThumbnail({ src }: { src: string }) {
       <video ref={videoRef} src={src} className="hidden" preload="metadata" />
       <canvas ref={canvasRef} className="hidden" />
       {thumb ? (
+        // Data-URL thumbnails are generated client-side from the local video element.
+        // eslint-disable-next-line @next/next/no-img-element
         <img src={thumb} alt="" className="w-full h-full object-cover" />
       ) : (
         <div className="w-full h-full flex items-center justify-center" style={{ background: "#e5e5e5" }}>
@@ -43,11 +45,11 @@ function VideoThumbnail({ src }: { src: string }) {
 }
 
 type Props = {
-  dubLanguage: string;
   onVideoSelect?: (filename: string) => void;
+  onTimeChange?: (seconds: number) => void;
 };
 
-export default function VideoPlayer({ dubLanguage: _dubLanguage, onVideoSelect }: Props) {
+export default function VideoPlayer({ onVideoSelect, onTimeChange }: Props) {
   const [videos, setVideos] = useState<string[]>([]);
   const [selected, setSelected] = useState<string | null>(null);
 
@@ -59,6 +61,7 @@ export default function VideoPlayer({ dubLanguage: _dubLanguage, onVideoSelect }
         if (files.length > 0) {
           setSelected(`/${files[0]}`);
           onVideoSelect?.(files[0]);
+          onTimeChange?.(0);
         }
       });
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -67,6 +70,7 @@ export default function VideoPlayer({ dubLanguage: _dubLanguage, onVideoSelect }
   const handleSelect = (file: string) => {
     setSelected(`/${file}`);
     onVideoSelect?.(file);
+    onTimeChange?.(0);
   };
 
   return (
@@ -79,7 +83,17 @@ export default function VideoPlayer({ dubLanguage: _dubLanguage, onVideoSelect }
         }}
       >
         {selected ? (
-          <video key={selected} src={selected} controls className="w-full h-full object-contain" style={{ background: "#000" }} />
+          <video
+            key={selected}
+            src={selected}
+            controls
+            preload="metadata"
+            onLoadedMetadata={(event) => onTimeChange?.(event.currentTarget.currentTime)}
+            onTimeUpdate={(event) => onTimeChange?.(event.currentTarget.currentTime)}
+            onSeeked={(event) => onTimeChange?.(event.currentTarget.currentTime)}
+            className="w-full h-full object-contain"
+            style={{ background: "#000" }}
+          />
         ) : (
           <div className="w-full h-full flex items-center justify-center" style={{ background: "#f5f5f5" }}>
             <p className="text-sm" style={{ color: "#aaa" }}>Loading…</p>

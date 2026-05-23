@@ -6,6 +6,7 @@ const FASTAPI_URL = process.env.FASTAPI_URL ?? "http://localhost:8000";
 export async function POST(req: NextRequest) {
   const { filename, targetLanguages } = await req.json();
   const filePath = join(process.cwd(), "public", filename);
+  const languages = Array.from(new Set(targetLanguages ?? ["en", "es", "de"]));
 
   const res = await fetch(`${FASTAPI_URL}/process`, {
     method: "POST",
@@ -13,7 +14,7 @@ export async function POST(req: NextRequest) {
     body: JSON.stringify({
       source_type: "file_path",
       source_value: filePath,
-      target_languages: targetLanguages ?? ["es", "pt", "fr"],
+      target_languages: languages,
       mode: "direct",
     }),
   });
