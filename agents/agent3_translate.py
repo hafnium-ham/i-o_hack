@@ -63,7 +63,8 @@ def run(transcript_payload: dict) -> dict:
     transcript = TranscriptPayload.model_validate(transcript_payload)
     source_segments = _source_subtitles(transcript)
     subtitles: dict[str, list[dict]] = {transcript.detected_language: source_segments}
-    subtitles.setdefault("en", source_segments)
+    if transcript.detected_language == "en":
+        subtitles.setdefault("en", source_segments)
 
     langs_to_translate = [
         lang for lang in transcript.target_languages
@@ -83,4 +84,3 @@ def run(transcript_payload: dict) -> dict:
                     subtitles[f"{lang}_error"] = [{"id": 0, "start": 0.0, "end": 0.0, "text": str(exc)}]
 
     return SubtitlePayload(job_id=transcript.job_id, subtitles=subtitles).model_dump()
-

@@ -8,9 +8,11 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from agents.pipeline_runner import run_pipeline
+from utils.env_loader import load_env_files
 
 
 def main() -> None:
+    load_env_files()
     os.environ.setdefault("MOCK_AI", "true")
     result = run_pipeline(
         {

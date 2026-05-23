@@ -26,6 +26,44 @@ def _mock_analysis(transcript: TranscriptPayload) -> dict:
     }
 
 
+def _normalize_analysis(result: object, transcript: TranscriptPayload) -> dict:
+    speakers = sorted({segment.speaker for segment in transcript.segments}) or ["AUDIO"]
+    data = result if isinstance(result, dict) else {}
+
+    summary = data.get("summary_bullets")
+    if not isinstance(summary, list):
+        summary = ["Interview processed and prepared for translated playback"]
+    summary = [str(item) for item in summary if str(item).strip()][:5] or [
+        "Interview processed and prepared for translated playback"
+    ]
+
+    overall = data.get("overall_sentiment", "neutral")
+    if not isinstance(overall, str):
+        overall = "neutral"
+
+    speaker_sentiment = data.get("speaker_sentiment")
+    if isinstance(speaker_sentiment, dict):
+        speaker_sentiment = {str(key): str(value) for key, value in speaker_sentiment.items()}
+    else:
+        speaker_sentiment = {speaker: str(speaker_sentiment or overall) for speaker in speakers}
+
+    tone_timeline = data.get("tone_timeline")
+    if not isinstance(tone_timeline, list):
+        tone_timeline = [{"segment_id": segment.id, "tone": overall} for segment in transcript.segments]
+    else:
+        tone_timeline = [
+            item if isinstance(item, dict) else {"segment_id": index, "tone": str(item)}
+            for index, item in enumerate(tone_timeline)
+        ]
+
+    return {
+        "summary_bullets": summary,
+        "overall_sentiment": overall,
+        "speaker_sentiment": speaker_sentiment,
+        "tone_timeline": tone_timeline,
+    }
+
+
 def run(transcript_payload: dict) -> dict:
     transcript = TranscriptPayload.model_validate(transcript_payload)
 
@@ -50,5 +88,4 @@ def run(transcript_payload: dict) -> dict:
         )
         result = parse_json_object(response.choices[0].message.content)
 
-    return AnalysisPayload(job_id=transcript.job_id, **result).model_dump()
-
+    return AnalysisPayload(job_id=transcript.job_id, **_normalize_analysis(result, transcript)).model_dump()

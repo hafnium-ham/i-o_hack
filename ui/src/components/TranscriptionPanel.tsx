@@ -7,36 +7,64 @@ export type TranscriptSegment = {
   speaker?: string;
   text: string;
   timestamp?: string;
+  endTimestamp?: string;
+  start: number;
+  end: number;
+  isActive: boolean;
   isFinal: boolean;
 };
 
-const PLACEHOLDER: TranscriptSegment[] = [
-  {
-    id: "1",
-    speaker: "Reporter",
-    text: "How do you feel about tonight's performance?",
-    timestamp: "0:12",
-    isFinal: true,
-  },
-  {
-    id: "2",
-    speaker: "Player",
-    text: "I mean, we came out strong. The whole team bought in from tip-off.",
-    timestamp: "0:18",
-    isFinal: true,
-  },
-];
+type PipelineStatus = "idle" | "processing" | "complete" | "error";
 
 type Props = {
   segments?: TranscriptSegment[];
+  pipelineStatus?: PipelineStatus;
+  inferenceTime?: number | null;
+  currentTime?: number;
+  languageLabel?: string;
+  totalSegments?: number;
+  errorMessage?: string | null;
 };
 
-export default function TranscriptionPanel({ segments = PLACEHOLDER }: Props) {
-  const bottomRef = useRef<HTMLDivElement>(null);
+const STATUS_LABELS: Record<PipelineStatus, string> = {
+  idle: "Waiting",
+  processing: "Processing full video",
+  complete: "Streaming with video",
+  error: "Error",
+};
+
+const STATUS_COLORS: Record<PipelineStatus, string> = {
+  idle: "#444",
+  processing: "var(--orange)",
+  complete: "#22c55e",
+  error: "#ef4444",
+};
+
+function formatClock(seconds: number): string {
+  const m = Math.floor(seconds / 60);
+  const s = Math.floor(seconds % 60);
+  return `${m}:${s.toString().padStart(2, "0")}`;
+}
+
+export default function TranscriptionPanel({
+  segments = [],
+  pipelineStatus = "idle",
+  inferenceTime,
+  currentTime = 0,
+  languageLabel = "English",
+  totalSegments = 0,
+  errorMessage,
+}: Props) {
+  const activeRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [segments]);
+    if (activeRef.current) {
+      activeRef.current.scrollIntoView({
+        behavior: "smooth",
+        block: "nearest",
+      });
+    }
+  }, [currentTime, segments]);
 
   return (
     <div
@@ -47,7 +75,6 @@ export default function TranscriptionPanel({ segments = PLACEHOLDER }: Props) {
         boxShadow: "0 0 30px rgba(245,184,0,0.15), 4px 4px 0 var(--orange)",
       }}
     >
-      {/* Header */}
       <div
         className="flex items-center justify-between px-4 py-3"
         style={{
@@ -55,27 +82,57 @@ export default function TranscriptionPanel({ segments = PLACEHOLDER }: Props) {
           background: "#ffffff",
         }}
       >
-        <span
-          className="text-xs font-black uppercase tracking-widest"
-          style={{ color: "var(--orange)" }}
-        >
-          Live Transcription
-        </span>
+        <div className="flex flex-col">
+          <span className="text-xs font-black uppercase tracking-widest" style={{ color: "var(--orange)" }}>
+            {languageLabel} Transcription
+          </span>
+          <span className="text-[11px] font-medium" style={{ color: "var(--text-secondary)" }}>
+            {formatClock(currentTime)} · {segments.length}/{totalSegments || 0} lines
+          </span>
+        </div>
         <span className="flex items-center gap-1.5 text-xs font-medium" style={{ color: "var(--text-secondary)" }}>
-          <span className="w-1.5 h-1.5 rounded-full" style={{ background: "#444" }} />
-          Waiting
+          <span
+            className="w-1.5 h-1.5 rounded-full"
+            style={{
+              background: STATUS_COLORS[pipelineStatus],
+              boxShadow: pipelineStatus === "processing" ? `0 0 6px ${STATUS_COLORS.processing}` : "none",
+            }}
+          />
+          {STATUS_LABELS[pipelineStatus]}
+          {inferenceTime != null && pipelineStatus === "complete" && (
+            <span style={{ color: "#aaa" }}>· {inferenceTime.toFixed(1)}s</span>
+          )}
         </span>
       </div>
 
-      {/* Transcript */}
-      <div className="flex-1 overflow-y-auto px-4 py-3 space-y-4 text-sm">
-        {segments.length === 0 ? (
+      <div className="flex-1 overflow-y-auto px-4 py-3 space-y-3 text-sm">
+        {pipelineStatus === "processing" ? (
           <p className="text-center mt-8" style={{ color: "#aaa" }}>
-            Transcription will appear here…
+            Transcribing and translating the full video. Captions will stream with playback when ready.
+          </p>
+        ) : pipelineStatus === "error" ? (
+          <p className="text-center mt-8" style={{ color: "#ef4444" }}>
+            {errorMessage || "Transcription failed. Try again."}
+          </p>
+        ) : pipelineStatus === "complete" && segments.length === 0 ? (
+          <p className="text-center mt-8" style={{ color: "#aaa" }}>
+            Press play or scrub the video to reveal the translated transcript in sync.
+          </p>
+        ) : segments.length === 0 ? (
+          <p className="text-center mt-8" style={{ color: "#aaa" }}>
+            Select a video and click Transcribe.
           </p>
         ) : (
           segments.map((seg) => (
-            <div key={seg.id} className="flex flex-col gap-0.5">
+            <div
+              key={seg.id}
+              ref={seg.isActive ? activeRef : null}
+              className="flex flex-col gap-0.5 rounded-lg px-2 py-1.5 transition-all"
+              style={{
+                background: seg.isActive ? "rgba(255,106,0,0.09)" : "transparent",
+                borderLeft: seg.isActive ? "3px solid var(--orange)" : "3px solid transparent",
+              }}
+            >
               <div className="flex items-baseline gap-2">
                 {seg.speaker && (
                   <span className="text-xs font-black uppercase tracking-wide" style={{ color: "var(--gold)" }}>
@@ -84,7 +141,7 @@ export default function TranscriptionPanel({ segments = PLACEHOLDER }: Props) {
                 )}
                 {seg.timestamp && (
                   <span className="text-xs" style={{ color: "var(--text-secondary)" }}>
-                    {seg.timestamp}
+                    {seg.timestamp}{seg.endTimestamp ? `-${seg.endTimestamp}` : ""}
                   </span>
                 )}
               </div>
@@ -94,7 +151,6 @@ export default function TranscriptionPanel({ segments = PLACEHOLDER }: Props) {
             </div>
           ))
         )}
-        <div ref={bottomRef} />
       </div>
     </div>
   );

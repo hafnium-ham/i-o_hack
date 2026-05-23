@@ -71,6 +71,7 @@ class StatEvent(BaseModel):
     mentioned_value: str = ""
     player_card: dict[str, Any] | None = None
     highlight_text: str
+    gemini_extraction: dict[str, Any] | None = None
 
 
 class AnalysisPayload(BaseModel):

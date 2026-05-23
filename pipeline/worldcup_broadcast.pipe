@@ -12,7 +12,10 @@
         "parameters": {
           "source_type": "file_path",
           "source_value": "tests/fixtures/sample_interview.wav",
-          "target_languages": ["es", "pt"],
+          "target_languages": [
+            "es",
+            "pt"
+          ],
           "mode": "direct"
         },
         "type": "webhook",
@@ -44,7 +47,7 @@
       "ui": {
         "position": {
           "x": 300,
-          "y": 220
+          "y": 190
         },
         "nodeType": "default",
         "formDataValid": true
@@ -88,5 +91,5 @@
     10
   ],
   "version": 1,
-  "docRevision": 1
+  "docRevision": 3
 }

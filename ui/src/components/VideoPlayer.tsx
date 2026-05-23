@@ -30,6 +30,8 @@ function VideoThumbnail({ src }: { src: string }) {
       <video ref={videoRef} src={src} className="hidden" preload="metadata" />
       <canvas ref={canvasRef} className="hidden" />
       {thumb ? (
+        // Data-URL thumbnails are generated client-side from the local video element.
+        // eslint-disable-next-line @next/next/no-img-element
         <img src={thumb} alt="" className="w-full h-full object-cover" />
       ) : (
         <div className="w-full h-full flex items-center justify-center" style={{ background: "#e5e5e5" }}>
@@ -43,35 +45,95 @@ function VideoThumbnail({ src }: { src: string }) {
 }
 
 type Props = {
-  // dubLanguage will be used to switch audio tracks once backend is connected
-  dubLanguage: string;
+  onVideoSelect?: (filename: string) => void;
+  onTimeChange?: (seconds: number) => void;
+  onPlayChange?: (isPlaying: boolean) => void;
+  activeSegmentText?: string;
+  volume?: number;
+  statCardElement?: React.ReactNode;
 };
 
-export default function VideoPlayer({ dubLanguage: _dubLanguage }: Props) {
+export default function VideoPlayer({
+  onVideoSelect,
+  onTimeChange,
+  onPlayChange,
+  activeSegmentText,
+  volume = 1.0,
+  statCardElement,
+}: Props) {
   const [videos, setVideos] = useState<string[]>([]);
   const [selected, setSelected] = useState<string | null>(null);
+  const mainVideoRef = useRef<HTMLVideoElement>(null);
 
   useEffect(() => {
     fetch("/api/videos")
       .then((r) => r.json())
       .then((files: string[]) => {
         setVideos(files);
-        if (files.length > 0) setSelected(`/${files[0]}`);
+        if (files.length > 0) {
+          setSelected(`/${files[0]}`);
+          onVideoSelect?.(files[0]);
+          onTimeChange?.(0);
+        }
       });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  useEffect(() => {
+    if (mainVideoRef.current) {
+      mainVideoRef.current.volume = volume;
+    }
+  }, [volume]);
+
+  const handleSelect = (file: string) => {
+    setSelected(`/${file}`);
+    onVideoSelect?.(file);
+    onTimeChange?.(0);
+  };
 
   return (
     <div className="flex flex-col h-full gap-3">
-      {/* Main player */}
       <div
-        className="flex-1 rounded-2xl overflow-hidden"
+        className="flex-1 rounded-2xl overflow-hidden relative group"
         style={{
           border: "3px solid var(--orange)",
           boxShadow: "0 0 40px rgba(255,106,0,0.25), 6px 6px 0px var(--gold)",
         }}
       >
         {selected ? (
-          <video key={selected} src={selected} controls className="w-full h-full object-contain" style={{ background: "#000" }} />
+          <>
+            <video
+              key={selected}
+              ref={mainVideoRef}
+              src={selected}
+              controls
+              preload="metadata"
+              onLoadedMetadata={(event) => onTimeChange?.(event.currentTarget.currentTime)}
+              onTimeUpdate={(event) => onTimeChange?.(event.currentTarget.currentTime)}
+              onSeeked={(event) => onTimeChange?.(event.currentTarget.currentTime)}
+              onPlay={() => onPlayChange?.(true)}
+              onPause={() => onPlayChange?.(false)}
+              onEnded={() => onPlayChange?.(false)}
+              className="w-full h-full object-contain"
+              style={{ background: "#000" }}
+            />
+            {activeSegmentText && (
+              <div
+                className="absolute bottom-16 left-1/2 transform -translate-x-1/2 w-11/12 max-w-2xl px-5 py-3 rounded-xl text-center select-none pointer-events-none transition-all duration-300"
+                style={{
+                  background: "rgba(10, 10, 10, 0.8)",
+                  backdropFilter: "blur(12px)",
+                  border: "1.5px solid rgba(255, 255, 255, 0.15)",
+                  boxShadow: "0 10px 30px rgba(0, 0, 0, 0.5), 0 0 15px rgba(255, 106, 0, 0.1)",
+                }}
+              >
+                <p className="text-white text-base md:text-lg font-black tracking-wide leading-relaxed drop-shadow-[0_2px_4px_rgba(0,0,0,0.9)]">
+                  {activeSegmentText}
+                </p>
+              </div>
+            )}
+            {statCardElement}
+          </>
         ) : (
           <div className="w-full h-full flex items-center justify-center" style={{ background: "#f5f5f5" }}>
             <p className="text-sm" style={{ color: "#aaa" }}>Loading…</p>
@@ -79,7 +141,6 @@ export default function VideoPlayer({ dubLanguage: _dubLanguage }: Props) {
         )}
       </div>
 
-      {/* Thumbnail strip */}
       {videos.length > 0 && (
         <div className="flex gap-3 overflow-x-auto pb-1">
           {videos.map((file) => {
@@ -88,7 +149,7 @@ export default function VideoPlayer({ dubLanguage: _dubLanguage }: Props) {
             return (
               <button
                 key={file}
-                onClick={() => setSelected(src)}
+                onClick={() => handleSelect(file)}
                 className="shrink-0 w-36 h-20 rounded-xl overflow-hidden transition-all"
                 style={{
                   outline: isActive ? "3px solid var(--orange)" : "none",
