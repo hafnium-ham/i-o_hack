@@ -1,0 +1,323 @@
+{
+  "components": [
+    {
+      "id": "audio_transcribe_1",
+      "provider": "audio_transcribe",
+      "name": "Transcribe",
+      "config": {
+        "profile": "default",
+        "default": {
+          "max_seconds": 300,
+          "min_seconds": 240,
+          "model": "base",
+          "silence_threshold": 0.25,
+          "vad_level": 1
+        },
+        "name": "Transcribe"
+      },
+      "ui": {
+        "position": {
+          "x": 240,
+          "y": 600
+        },
+        "nodeType": "default",
+        "formDataValid": true
+      },
+      "input": [
+        {
+          "lane": "audio",
+          "from": "webhook_2"
+        }
+      ]
+    },
+    {
+      "id": "audio_tts_1",
+      "provider": "audio_tts",
+      "name": "Text To Speech",
+      "config": {
+        "profile": "kokoro",
+        "kokoro": {
+          "kokoro_voice": "af_heart"
+        },
+        "name": "Text To Speech"
+      },
+      "ui": {
+        "position": {
+          "x": 242,
+          "y": 286
+        },
+        "nodeType": "default",
+        "formDataValid": true
+      },
+      "input": [
+        {
+          "lane": "answers",
+          "from": "agent_crewai_1"
+        }
+      ]
+    },
+    {
+      "id": "agent_crewai_1",
+      "provider": "agent_crewai",
+      "name": "CrewAI Agent",
+      "config": {
+        "default": {
+          "advanced_mode": false,
+          "agent_description": "",
+          "instructions": []
+        },
+        "name": "CrewAI Agent"
+      },
+      "ui": {
+        "position": {
+          "x": 12,
+          "y": 292
+        },
+        "nodeType": "default",
+        "formDataValid": true
+      }
+    },
+    {
+      "id": "llm_gemini_1",
+      "provider": "llm_gemini",
+      "name": "Gemini",
+      "config": {
+        "profile": "gemini-3_1-pro-preview",
+        "1-pro-preview": {},
+        "name": "Gemini"
+      },
+      "ui": {
+        "position": {
+          "x": 242,
+          "y": 382
+        },
+        "nodeType": "default",
+        "formDataValid": true
+      },
+      "control": [
+        {
+          "classType": "llm",
+          "from": "agent_crewai_1"
+        }
+      ]
+    },
+    {
+      "id": "tool_github_1",
+      "provider": "tool_github",
+      "name": "GitHub",
+      "config": {
+        "defaultRepo": "",
+        "readOnly": false,
+        "token": "",
+        "type": "tool_github",
+        "name": "GitHub"
+      },
+      "ui": {
+        "position": {
+          "x": 10,
+          "y": -130
+        },
+        "nodeType": "default",
+        "formDataValid": true
+      }
+    },
+    {
+      "id": "audio_tts_2",
+      "provider": "audio_tts",
+      "name": "Text To Speech",
+      "config": {
+        "profile": "kokoro",
+        "kokoro": {
+          "kokoro_voice": "af_heart"
+        },
+        "name": "Text To Speech"
+      },
+      "ui": {
+        "position": {
+          "x": 10,
+          "y": -10
+        },
+        "nodeType": "default",
+        "formDataValid": true
+      }
+    },
+    {
+      "id": "prompt_1",
+      "provider": "prompt",
+      "name": "Prompt",
+      "config": {
+        "instructions": [],
+        "name": "Prompt"
+      },
+      "ui": {
+        "position": {
+          "x": 20,
+          "y": 140
+        },
+        "nodeType": "default",
+        "formDataValid": true
+      }
+    },
+    {
+      "id": "llm_deepseek_1",
+      "provider": "llm_deepseek",
+      "name": "Deepseek",
+      "config": {
+        "profile": "cloud-reasoner",
+        "cloud-reasoner": {},
+        "name": "Deepseek"
+      },
+      "ui": {
+        "position": {
+          "x": 230,
+          "y": 130
+        },
+        "nodeType": "default",
+        "formDataValid": true
+      },
+      "input": [
+        {
+          "lane": "questions",
+          "from": "prompt_1"
+        }
+      ]
+    },
+    {
+      "id": "webhook_2",
+      "provider": "webhook",
+      "name": "Web Hook",
+      "config": {
+        "hideForm": true,
+        "mode": "Source",
+        "parameters": {},
+        "type": "webhook",
+        "name": "Web Hook"
+      },
+      "ui": {
+        "position": {
+          "x": 10,
+          "y": 410
+        },
+        "nodeType": "default",
+        "formDataValid": true
+      }
+    },
+    {
+      "id": "image_vision_gemini_1",
+      "provider": "image_vision_gemini",
+      "name": "Gemini Vision",
+      "config": {
+        "profile": "gemini-2_5-flash",
+        "gemini-2_5-flash": {},
+        "name": "Gemini Vision"
+      },
+      "ui": {
+        "position": {
+          "x": 472,
+          "y": 230
+        },
+        "nodeType": "default",
+        "formDataValid": true
+      }
+    },
+    {
+      "id": "ocr_1",
+      "provider": "ocr",
+      "name": "OCR",
+      "config": {
+        "engine": "easyocr",
+        "profile": "latin",
+        "script_family": "latin",
+        "table_engine": "doctr",
+        "name": "OCR"
+      },
+      "ui": {
+        "position": {
+          "x": 180,
+          "y": -200
+        },
+        "nodeType": "default",
+        "formDataValid": true
+      }
+    },
+    {
+      "id": "response_audio_1",
+      "provider": "response_audio",
+      "name": "Return Audio",
+      "config": {
+        "laneName": "audio",
+        "name": "Return Audio"
+      },
+      "ui": {
+        "position": {
+          "x": 240,
+          "y": 0
+        },
+        "nodeType": "default",
+        "formDataValid": true
+      },
+      "input": [
+        {
+          "lane": "audio",
+          "from": "audio_tts_2"
+        }
+      ]
+    },
+    {
+      "id": "embedding_video_1",
+      "provider": "embedding_video",
+      "name": "Video",
+      "config": {
+        "extraction": {
+          "duration": 0,
+          "interval": 5,
+          "max_frames": 50,
+          "maxVideoSizeMB": 500,
+          "start_time": 0
+        },
+        "profile": "openai-patch16",
+        "name": "Video"
+      },
+      "ui": {
+        "position": {
+          "x": 350,
+          "y": -190
+        },
+        "nodeType": "default",
+        "formDataValid": true
+      }
+    },
+    {
+      "id": "response_text_1",
+      "provider": "response_text",
+      "name": "Return Text",
+      "config": {
+        "laneName": "text",
+        "name": "Return Text"
+      },
+      "ui": {
+        "position": {
+          "x": 460,
+          "y": 640
+        },
+        "nodeType": "default",
+        "formDataValid": true
+      },
+      "input": [
+        {
+          "lane": "text",
+          "from": "audio_transcribe_1"
+        }
+      ]
+    }
+  ],
+  "project_id": "268aa5b6-49c9-4f84-9c6c-033f29f2af61",
+  "isLocked": false,
+  "snapToGrid": true,
+  "snapGridSize": [
+    10,
+    10
+  ],
+  "version": 1,
+  "docRevision": 108
+}
