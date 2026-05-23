@@ -4,12 +4,42 @@ import { useEffect, useRef, useState, useCallback } from "react";
 
 type SpeechState = "idle" | "speaking" | "paused";
 
+const MALE_HINTS = [
+  "male", "man", "guy",
+  // macOS
+  "alex", "fred", "daniel", "gordon", "ralph", "bruce", "tom",
+  // Windows
+  "david", "mark", "richard", "george", "james", "peter", "paul",
+  // Spanish
+  "jorge", "diego", "carlos", "miguel",
+  // German
+  "stefan", "markus", "hans", "otto",
+];
+
+function pickMaleVoice(langPrefix: string): SpeechSynthesisVoice | null {
+  const voices = window.speechSynthesis.getVoices();
+  const langVoices = voices.filter(v => v.lang.startsWith(langPrefix));
+  console.log(`[TTS] available ${langPrefix} voices:`, langVoices.map(v => v.name));
+  const picked = langVoices.find(v => MALE_HINTS.some(h => v.name.toLowerCase().includes(h))) ?? langVoices[0] ?? null;
+  console.log(`[TTS] picked:`, picked?.name);
+  return picked;
+}
+
 export function useTTS() {
   const [isMuted, setIsMuted] = useState(false);
   const [speechState, setSpeechState] = useState<SpeechState>("idle");
   const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
+  const voicesReadyRef = useRef(false);
 
-  // Stop/cancel any current speech
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const synth = window.speechSynthesis;
+    const onVoicesChanged = () => { voicesReadyRef.current = true; };
+    synth.addEventListener("voiceschanged", onVoicesChanged);
+    if (synth.getVoices().length > 0) voicesReadyRef.current = true;
+    return () => synth.removeEventListener("voiceschanged", onVoicesChanged);
+  }, []);
+
   const stop = useCallback(() => {
     if (typeof window !== "undefined" && window.speechSynthesis) {
       window.speechSynthesis.cancel();
@@ -17,11 +47,9 @@ export function useTTS() {
     }
   }, []);
 
-  // Speak a segment of text in a specific language
   const speak = useCallback((text: string, lang: string) => {
     if (typeof window === "undefined" || !window.speechSynthesis) return;
 
-    // Stop current speech first
     window.speechSynthesis.cancel();
 
     if (isMuted || !text) {
@@ -32,20 +60,14 @@ export function useTTS() {
     const utterance = new SpeechSynthesisUtterance(text);
     utteranceRef.current = utterance;
 
-    // Map language code to standard locale
-    if (lang === "en") utterance.lang = "en-US";
-    else if (lang === "es") utterance.lang = "es-ES";
-    else if (lang === "de") utterance.lang = "de-DE";
-    else utterance.lang = lang;
+    let langPrefix = "en";
+    if (lang === "en") { utterance.lang = "en-US"; langPrefix = "en"; }
+    else if (lang === "es") { utterance.lang = "es-ES"; langPrefix = "es"; }
+    else if (lang === "de") { utterance.lang = "de-DE"; langPrefix = "de"; }
+    else { utterance.lang = lang; langPrefix = lang.slice(0, 2); }
 
-    // Try to find a high-quality voice for the target language
-    const voices = window.speechSynthesis.getVoices();
-    const matchingVoice = voices.find(v => v.lang.startsWith(utterance.lang));
-    if (matchingVoice) {
-      utterance.voice = matchingVoice;
-    }
+    utterance.voice = pickMaleVoice(langPrefix);
 
-    // Event handlers to update state
     utterance.onstart = () => setSpeechState("speaking");
     utterance.onend = () => setSpeechState("idle");
     utterance.onerror = () => setSpeechState("idle");
@@ -53,7 +75,6 @@ export function useTTS() {
     window.speechSynthesis.speak(utterance);
   }, [isMuted]);
 
-  // Handle cleanup on unmount
   useEffect(() => {
     return () => {
       if (typeof window !== "undefined" && window.speechSynthesis) {
@@ -72,11 +93,5 @@ export function useTTS() {
     });
   }, []);
 
-  return {
-    isMuted,
-    toggleMute,
-    speak,
-    stop,
-    speechState
-  };
+  return { isMuted, toggleMute, speak, stop, speechState };
 }
