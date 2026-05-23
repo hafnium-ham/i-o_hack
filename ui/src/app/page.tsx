@@ -72,7 +72,7 @@ function normalizeSegments(result: any): Record<string, ApiTimedSegment[]> {
 }
 
 function toVisibleSegments(segments: ApiTimedSegment[], currentTime: number): TranscriptSegment[] {
-  return segments.map((seg) => ({
+  return segments.filter((seg) => currentTime >= seg.start).map((seg) => ({
     id: String(seg.id),
     speaker: seg.speaker,
     text: seg.text,

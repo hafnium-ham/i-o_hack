@@ -26,25 +26,6 @@ type Props = {
   errorMessage?: string | null;
 };
 
-const STATUS_LABELS: Record<PipelineStatus, string> = {
-  idle: "Waiting",
-  processing: "Processing full video",
-  complete: "Streaming with video",
-  error: "Error",
-};
-
-const STATUS_COLORS: Record<PipelineStatus, string> = {
-  idle: "#444",
-  processing: "var(--orange)",
-  complete: "#22c55e",
-  error: "#ef4444",
-};
-
-function formatClock(seconds: number): string {
-  const m = Math.floor(seconds / 60);
-  const s = Math.floor(seconds % 60);
-  return `${m}:${s.toString().padStart(2, "0")}`;
-}
 
 export default function TranscriptionPanel({
   segments = [],
@@ -76,32 +57,14 @@ export default function TranscriptionPanel({
       }}
     >
       <div
-        className="flex items-center justify-between px-4 py-3"
+        className="px-4 py-3"
         style={{
           borderBottom: "3px solid var(--gold)",
           background: "#ffffff",
         }}
       >
-        <div className="flex flex-col">
-          <span className="text-xs font-black uppercase tracking-widest" style={{ color: "var(--orange)" }}>
-            {languageLabel} Transcription
-          </span>
-          <span className="text-[11px] font-medium" style={{ color: "var(--text-secondary)" }}>
-            {formatClock(currentTime)} · {segments.length}/{totalSegments || 0} lines
-          </span>
-        </div>
-        <span className="flex items-center gap-1.5 text-xs font-medium" style={{ color: "var(--text-secondary)" }}>
-          <span
-            className="w-1.5 h-1.5 rounded-full"
-            style={{
-              background: STATUS_COLORS[pipelineStatus],
-              boxShadow: pipelineStatus === "processing" ? `0 0 6px ${STATUS_COLORS.processing}` : "none",
-            }}
-          />
-          {STATUS_LABELS[pipelineStatus]}
-          {inferenceTime != null && pipelineStatus === "complete" && (
-            <span style={{ color: "#aaa" }}>· {inferenceTime.toFixed(1)}s</span>
-          )}
+        <span className="text-xs font-black uppercase tracking-widest" style={{ color: "var(--orange)" }}>
+          {languageLabel} Transcription
         </span>
       </div>
 
