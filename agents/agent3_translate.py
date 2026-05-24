@@ -37,6 +37,19 @@ def _mock_translate(segments: list[dict], target_lang: str) -> list[dict]:
     return [{**segment, "text": f"[{lang_name}] {segment['text']}"} for segment in segments]
 
 
+def _reapply_source_timing(translated: list[dict], source: list[dict]) -> list[dict]:
+    """Pin id/start/end from source segments so timing is always correct."""
+    source_by_id = {str(s["id"]): s for s in source}
+    out = []
+    for i, seg in enumerate(translated):
+        src = source_by_id.get(str(seg.get("id", ""))) or (source[i] if i < len(source) else None)
+        if src:
+            out.append({"id": src["id"], "start": src["start"], "end": src["end"], "text": seg.get("text", src["text"])})
+        else:
+            out.append(seg)
+    return out
+
+
 def translate_language(segments: list[dict], target_lang: str) -> tuple[str, list[dict]]:
     if os.getenv("MOCK_AI", "").lower() in {"1", "true", "yes"}:
         return target_lang, _mock_translate(segments, target_lang)
@@ -56,7 +69,7 @@ def translate_language(segments: list[dict], target_lang: str) -> tuple[str, lis
     parsed = parse_json_object(response.choices[0].message.content)
     if isinstance(parsed, dict):
         parsed = parsed.get("segments") or next(iter(parsed.values()))
-    return target_lang, parsed
+    return target_lang, _reapply_source_timing(parsed, segments)
 
 
 def run(transcript_payload: dict) -> dict:

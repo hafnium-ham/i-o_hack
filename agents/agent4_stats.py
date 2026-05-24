@@ -362,6 +362,13 @@ def _extract_local(transcript: TranscriptPayload) -> list[StatEvent]:
     return events
 
 
+def run_local(transcript_payload: dict) -> dict:
+    """Fast keyword-only extraction — no AI calls, safe to run on partial transcripts."""
+    transcript = TranscriptPayload.model_validate(transcript_payload)
+    events = _extract_local(transcript)
+    return {"job_id": transcript.job_id, "stat_events": [event.model_dump() for event in events]}
+
+
 def run(transcript_payload: dict) -> dict:
     transcript = TranscriptPayload.model_validate(transcript_payload)
 
