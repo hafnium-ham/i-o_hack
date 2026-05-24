@@ -1,3 +1,20 @@
+# SportsCast
+
+Post-game interview transcription and stats overlay. Paste a sports interview video, get live subtitles, player stat cards, and dubbed audio in your language.
+
+## Running the UI
+
+```bash
+cd ui
+bun install
+bun dev
+```
+
+Open [http://localhost:3000](http://localhost:3000). Paste a YouTube URL and hit **Load**.
+
+## Stack
+
+- **UI** — Next.js 16 + TypeScript + Tailwind (`ui/`)
 # World Cup AI Broadcast Assistant
 
 Backend pipeline for a hackathon demo that turns post-match interview audio/video into:
@@ -51,6 +68,17 @@ PLAYERS_DB_PATH=data/players.json
 
 GMI Cloud is configured through `GMI_BASE_URL`, defaulting to `https://api.gmi-serving.com/v1`.
 
+Optional API-SPORTS live player enrichment:
+
+```bash
+APISPORTS_KEY=your_api_sports_key
+APISPORTS_LIVE_LOOKUP=true
+APISPORTS_FOOTBALL_SEASON=2026
+APISPORTS_FOOTBALL_BASE_URL=https://v3.football.api-sports.io
+```
+
+When `APISPORTS_LIVE_LOOKUP=true`, `agent4_stats` keeps the local player database as a fallback and adds an `api_sports` object to each matched `player_card` with player profile, team history, and season stats when the API has coverage. Leave it `false` for tests, offline demos, and runs that should not spend API quota.
+
 ## Run API
 
 ```bash
@@ -71,6 +99,40 @@ curl -X POST http://localhost:8000/process/sync \
 ```
 
 For async frontend flow, use `POST /process`, then poll `GET /jobs/{job_id}`.
+
+## Run UI
+
+The Next UI is in `ui/`. It lists local MP4 files from `ui/public`.
+
+```bash
+cd ui
+npm install --package-lock=false
+npm run dev
+```
+
+For the local Messi interview file, put the MP4 directly in `ui/public`:
+
+```bash
+mv YTDown_YouTube_Messi-Postgame-Interview-After-Leading-I_Media_8VIgdcabDHE_001_1080p.mp4 ui/public/messi-interview.mp4
+```
+
+## Run Directly Without RocketRide
+
+Use the direct script for a local audio/video file. It loads `.env.local`/`.env` from this project or the parent workspace and writes a frontend-ready JSON payload.
+
+Mock/offline verification:
+
+```bash
+.venv/bin/python scripts/process_interview_direct.py --mock-ai
+```
+
+Live interview processing:
+
+```bash
+MOCK_AI=false .venv/bin/python scripts/process_interview_direct.py
+```
+
+The default source is `ui/public/messi-interview.mp4`, and the default output is `outputs/messi_interview_result.json`. Without `GOOGLE_API_KEY`, live mode uses local faster-whisper for transcription and `GMI_API_KEY` for translation/analysis. Rerun with `--mock-ai` to verify ingest, subtitles, stats, analysis shape, and final assembly without external AI calls.
 
 ## RocketRide
 

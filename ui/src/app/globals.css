@@ -1,0 +1,39 @@
+@import "tailwindcss";
+
+:root {
+  --bg: #ffffff;
+  --surface: #111111;
+  --surface-2: #1c1c1c;
+  --border: #ff6a00;
+  --gold: #f5b800;
+  --orange: #ff6a00;
+  --red: #e63946;
+  --text-primary: #ffffff;
+  --text-dark: #111111;
+  --text-secondary: #999;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text-dark);
+  font-family: ui-sans-serif, system-ui, sans-serif;
+  height: 100vh;
+  overflow: hidden;
+}
+
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--orange); border-radius: 4px; }
+
+@keyframes stat-card-shimmer {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+

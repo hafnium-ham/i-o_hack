@@ -1,7 +1,14 @@
+.rocketride/
+.DS_Store
+*.mp4
 .env
+.env.local
+.env.*.local
 __pycache__/
 *.pyc
 .pytest_cache/
 .ruff_cache/
 /tmp/
-
+.venv/
+/outputs/
+YTDown_*.mp4

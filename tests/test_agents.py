@@ -53,6 +53,54 @@ def test_stats_extracts_named_players() -> None:
     assert "Lionel Messi" in names
 
 
+def test_stats_can_enrich_players_when_live_lookup_enabled(monkeypatch) -> None:
+    monkeypatch.setenv("APISPORTS_LIVE_LOOKUP", "true")
+    calls: list[str] = []
+
+    def fake_enrich_player_card(player: dict) -> dict:
+        calls.append(player["name"])
+        return {**player, "api_sports": {"source": "api-sports", "status": "ok", "player_id": 1, "errors": []}}
+
+    monkeypatch.setattr(agent4_stats, "enrich_player_card", fake_enrich_player_card)
+
+    result = agent4_stats.run(TRANSCRIPT)
+    cards = [event["player_card"] for event in result["stat_events"]]
+
+    assert "Kylian Mbappe" in calls
+    assert "Lionel Messi" in calls
+    assert all(card["api_sports"]["source"] == "api-sports" for card in cards)
+
+
+def test_stats_live_lookup_disabled_never_enriches(monkeypatch) -> None:
+    monkeypatch.setenv("APISPORTS_LIVE_LOOKUP", "false")
+
+    def fail_enrich_player_card(player: dict) -> dict:
+        raise AssertionError(f"Unexpected API-SPORTS enrichment for {player['name']}")
+
+    monkeypatch.setattr(agent4_stats, "enrich_player_card", fail_enrich_player_card)
+
+    result = agent4_stats.run(TRANSCRIPT)
+
+    assert result["stat_events"]
+    assert all("api_sports" not in event["player_card"] for event in result["stat_events"])
+
+
+def test_stats_live_lookup_failure_keeps_local_player_cards(monkeypatch) -> None:
+    monkeypatch.setenv("APISPORTS_LIVE_LOOKUP", "true")
+
+    def fail_enrich_player_card(player: dict) -> dict:
+        raise RuntimeError("API-SPORTS exploded")
+
+    monkeypatch.setattr(agent4_stats, "enrich_player_card", fail_enrich_player_card)
+
+    result = agent4_stats.run(TRANSCRIPT)
+    cards = [event["player_card"] for event in result["stat_events"]]
+
+    assert {card["name"] for card in cards} == {"Kylian Mbappe", "Lionel Messi"}
+    assert all(card["api_sports"]["status"] == "error" for card in cards)
+    assert all(card["api_sports"]["errors"][0]["stage"] == "unexpected" for card in cards)
+
+
 def test_stats_keeps_sentence_level_stat_attribution() -> None:
     transcript = {
         **TRANSCRIPT,

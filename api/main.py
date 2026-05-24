@@ -2,19 +2,24 @@ from __future__ import annotations
 
 import asyncio
 import os
+import traceback
 import uuid
 from typing import Any
+
+from dotenv import load_dotenv
+load_dotenv()
 
 import httpx
 from fastapi import BackgroundTasks, FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
+from agents import agent4_stats
 from agents.pipeline_runner import run_pipeline
-from utils.schemas import RawInput
+from utils.schemas import RawInput, TranscriptPayload
 
 
-app = FastAPI(title="World Cup AI Broadcast API", version="0.1.0")
+app = FastAPI(title="SportsCast API", version="0.1.0")
 
 app.add_middleware(
     CORSMiddleware,
@@ -38,16 +43,34 @@ class JobStatus(BaseModel):
     status: str
     result: dict[str, Any] | None = None
     error: str | None = None
+    partial_transcript: dict[str, Any] | None = None
+    partial_subtitles: dict[str, Any] | None = None
+    partial_stat_events: list[dict[str, Any]] | None = None
 
 
 async def _run_direct(job_id: str, request: ProcessRequest) -> dict:
+    def on_partial(partial: dict) -> None:
+        transcript = partial.get("transcript", partial)
+        JOB_STORE[job_id]["partial_transcript"] = transcript
+        JOB_STORE[job_id]["partial_subtitles"] = partial.get("subtitles", {})
+        try:
+            stats = agent4_stats.run_local({
+                "job_id": job_id,
+                "segments": transcript.get("segments", []),
+                "full_text": transcript.get("full_text", ""),
+                "detected_language": transcript.get("detected_language", "en"),
+            })
+            JOB_STORE[job_id]["partial_stat_events"] = stats.get("stat_events", [])
+        except Exception:
+            pass
+
     payload = RawInput(
         job_id=job_id,
         source_type=request.source_type,
         source_value=request.source_value,
         target_languages=request.target_languages,
     ).model_dump()
-    return await asyncio.to_thread(run_pipeline, payload)
+    return await asyncio.to_thread(run_pipeline, payload, on_partial)
 
 
 async def _run_rocketride(job_id: str, request: ProcessRequest) -> dict:
@@ -69,6 +92,7 @@ async def _run_job(job_id: str, request: ProcessRequest) -> None:
     try:
         result = await (_run_rocketride(job_id, request) if request.mode == "rocketride" else _run_direct(job_id, request))
     except Exception as exc:
+        traceback.print_exc()
         JOB_STORE[job_id]["status"] = "error"
         JOB_STORE[job_id]["error"] = str(exc)
         return
@@ -80,7 +104,7 @@ async def _run_job(job_id: str, request: ProcessRequest) -> None:
 @app.post("/process", response_model=JobStatus)
 async def submit_job(request: ProcessRequest, background_tasks: BackgroundTasks) -> JobStatus:
     job_id = str(uuid.uuid4())
-    JOB_STORE[job_id] = {"status": "queued", "result": None, "error": None}
+    JOB_STORE[job_id] = {"status": "queued", "result": None, "error": None, "partial_transcript": None, "partial_subtitles": None, "partial_stat_events": None}
     background_tasks.add_task(_run_job, job_id, request)
     return JobStatus(job_id=job_id, status="queued")
 
@@ -96,10 +120,28 @@ async def process_sync(request: ProcessRequest) -> dict:
 async def get_job(job_id: str) -> JobStatus:
     if job_id not in JOB_STORE:
         raise HTTPException(status_code=404, detail="Job not found")
-    return JobStatus(job_id=job_id, **JOB_STORE[job_id])
+    job = JOB_STORE[job_id]
+    return JobStatus(
+        job_id=job_id,
+        status=job["status"],
+        result=job.get("result"),
+        error=job.get("error"),
+        partial_transcript=job.get("partial_transcript"),
+        partial_subtitles=job.get("partial_subtitles"),
+        partial_stat_events=job.get("partial_stat_events"),
+    )
+
+
+@app.post("/extract-entities")
+async def extract_entities(payload: TranscriptPayload) -> dict:
+    try:
+        result = await asyncio.to_thread(agent4_stats.run, payload.model_dump())
+        return result
+    except Exception as exc:
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=str(exc))
 
 
 @app.get("/health")
 async def health() -> dict:
     return {"status": "ok", "mode_default": "direct"}
-
