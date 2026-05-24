@@ -6,6 +6,7 @@ import RightPanel from "@/components/RightPanel";
 import { type DubLanguage } from "@/components/DubSelector";
 import { type TranscriptSegment } from "@/components/TranscriptionPanel";
 import { useTTS } from "@/hooks/useTTS";
+import StatCardOverlay from "@/components/StatCardOverlay";
 
 type PipelineStatus = "idle" | "processing" | "partial" | "complete" | "error";
 
@@ -87,6 +88,7 @@ export default function Home() {
   const [pipelineStatus, setPipelineStatus] = useState<PipelineStatus>("idle");
   const [segmentsByLanguage, setSegmentsByLanguage] = useState<Record<string, ApiTimedSegment[]>>({});
   const [inferenceTime, setInferenceTime] = useState<number | null>(null);
+  const [statEvents, setStatEvents] = useState<any[]>([]);
   const [firstChunkTime, setFirstChunkTime] = useState<number | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [currentTime, setCurrentTime] = useState(0);
@@ -146,6 +148,7 @@ export default function Home() {
             stopPolling();
             setSegmentsByLanguage(normalizeSegments(job.result));
             setInferenceTime(job.result.processing_time_seconds ?? null);
+            setStatEvents(job.result.stat_events ?? []);
             setPipelineStatus("complete");
           } else if (job.status === "error") {
             stopPolling();
@@ -227,6 +230,12 @@ export default function Home() {
           onPlayChange={handlePlayChange}
           activeSegmentText={activeSegment?.text}
           volume={videoVolume}
+          statCardElement={
+            <StatCardOverlay
+              statEvents={statEvents}
+              currentTime={currentTime}
+            />
+          }
         />
       </div>
 

@@ -14,8 +14,9 @@ from fastapi import BackgroundTasks, FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
+from agents import agent4_stats
 from agents.pipeline_runner import run_pipeline
-from utils.schemas import RawInput
+from utils.schemas import RawInput, TranscriptPayload
 
 
 app = FastAPI(title="World Cup AI Broadcast API", version="0.1.0")
@@ -116,6 +117,16 @@ async def get_job(job_id: str) -> JobStatus:
         partial_transcript=job.get("partial_transcript"),
         partial_subtitles=job.get("partial_subtitles"),
     )
+
+
+@app.post("/extract-entities")
+async def extract_entities(payload: TranscriptPayload) -> dict:
+    try:
+        result = await asyncio.to_thread(agent4_stats.run, payload.model_dump())
+        return result
+    except Exception as exc:
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=str(exc))
 
 
 @app.get("/health")
