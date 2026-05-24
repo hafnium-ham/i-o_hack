@@ -65,6 +65,8 @@ export default function RightPanel({
         </button>
       </div>
 
+      <DubSelector selected={dubLanguage} onChange={onDubLanguageChange} />
+
       <div className="flex-1 min-h-0">
         <TranscriptionPanel
           segments={segments}
@@ -76,8 +78,6 @@ export default function RightPanel({
           errorMessage={errorMessage}
         />
       </div>
-
-      <DubSelector selected={dubLanguage} onChange={onDubLanguageChange} />
     </div>
   );
 }
