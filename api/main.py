@@ -19,7 +19,7 @@ from agents.pipeline_runner import run_pipeline
 from utils.schemas import RawInput, TranscriptPayload
 
 
-app = FastAPI(title="World Cup AI Broadcast API", version="0.1.0")
+app = FastAPI(title="SportsCast API", version="0.1.0")
 
 app.add_middleware(
     CORSMiddleware,
@@ -45,12 +45,24 @@ class JobStatus(BaseModel):
     error: str | None = None
     partial_transcript: dict[str, Any] | None = None
     partial_subtitles: dict[str, Any] | None = None
+    partial_stat_events: list[dict[str, Any]] | None = None
 
 
 async def _run_direct(job_id: str, request: ProcessRequest) -> dict:
     def on_partial(partial: dict) -> None:
-        JOB_STORE[job_id]["partial_transcript"] = partial.get("transcript", partial)
+        transcript = partial.get("transcript", partial)
+        JOB_STORE[job_id]["partial_transcript"] = transcript
         JOB_STORE[job_id]["partial_subtitles"] = partial.get("subtitles", {})
+        try:
+            stats = agent4_stats.run_local({
+                "job_id": job_id,
+                "segments": transcript.get("segments", []),
+                "full_text": transcript.get("full_text", ""),
+                "detected_language": transcript.get("detected_language", "en"),
+            })
+            JOB_STORE[job_id]["partial_stat_events"] = stats.get("stat_events", [])
+        except Exception:
+            pass
 
     payload = RawInput(
         job_id=job_id,
@@ -92,7 +104,7 @@ async def _run_job(job_id: str, request: ProcessRequest) -> None:
 @app.post("/process", response_model=JobStatus)
 async def submit_job(request: ProcessRequest, background_tasks: BackgroundTasks) -> JobStatus:
     job_id = str(uuid.uuid4())
-    JOB_STORE[job_id] = {"status": "queued", "result": None, "error": None, "partial_transcript": None, "partial_subtitles": None}
+    JOB_STORE[job_id] = {"status": "queued", "result": None, "error": None, "partial_transcript": None, "partial_subtitles": None, "partial_stat_events": None}
     background_tasks.add_task(_run_job, job_id, request)
     return JobStatus(job_id=job_id, status="queued")
 
@@ -116,6 +128,7 @@ async def get_job(job_id: str) -> JobStatus:
         error=job.get("error"),
         partial_transcript=job.get("partial_transcript"),
         partial_subtitles=job.get("partial_subtitles"),
+        partial_stat_events=job.get("partial_stat_events"),
     )
 
 

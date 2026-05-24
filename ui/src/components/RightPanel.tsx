@@ -47,7 +47,7 @@ export default function RightPanel({
             WebkitTextFillColor: "transparent",
           }}
         >
-          Scribe
+          SportsCast
         </h1>
 
         <button

@@ -137,6 +137,9 @@ export default function Home() {
               transcript: job.partial_transcript,
               subtitles: job.partial_subtitles ?? {},
             }));
+            if (job.partial_stat_events?.length > 0) {
+              setStatEvents(job.partial_stat_events);
+            }
             setPipelineStatus((prev) => {
               if (prev === "processing" && transcriptionStartRef.current) {
                 setFirstChunkTime(Math.round((Date.now() - transcriptionStartRef.current) / 100) / 10);

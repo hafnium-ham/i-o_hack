@@ -111,7 +111,7 @@ export default function TranscriptionPanel({
           <p>
             {segments.map((seg) => (
               <span
-                key={seg.id}
+                key={`${seg.start}-${seg.id}`}
                 ref={seg.isActive ? activeRef : null}
                 style={{
                   color: seg.isActive ? "#111111" : seg.isFinal ? "#555555" : "#aaaaaa",

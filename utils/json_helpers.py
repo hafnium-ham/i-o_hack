@@ -13,6 +13,11 @@ def parse_json_object(raw: str) -> Any:
     try:
         return json.loads(text)
     except json.JSONDecodeError:
+        # Gemini sometimes returns object contents without outer braces
+        try:
+            return json.loads("{" + text + "}")
+        except json.JSONDecodeError:
+            pass
         decoder = json.JSONDecoder()
         for index, char in enumerate(text):
             if char not in "[{":
