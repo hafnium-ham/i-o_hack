@@ -6,9 +6,8 @@ import RightPanel from "@/components/RightPanel";
 import { type DubLanguage } from "@/components/DubSelector";
 import { type TranscriptSegment } from "@/components/TranscriptionPanel";
 import { useTTS } from "@/hooks/useTTS";
-import messiResult from "../../public/messi_interview_result.json";
 
-type PipelineStatus = "idle" | "processing" | "complete" | "error";
+type PipelineStatus = "idle" | "processing" | "partial" | "complete" | "error";
 
 type ApiTimedSegment = {
   id: number | string;
@@ -18,16 +17,8 @@ type ApiTimedSegment = {
   text: string;
 };
 
-type JobResult = {
-  processing_time_seconds?: number;
-  transcript?: {
-    detected_language?: string;
-    segments?: ApiTimedSegment[];
-  };
-  subtitles?: Record<string, Array<Omit<ApiTimedSegment, "speaker">>>;
-};
-
-const TARGET_LANGUAGES: DubLanguage[] = ["en", "es", "de"];
+const FASTAPI_URL = process.env.NEXT_PUBLIC_FASTAPI_URL ?? "http://localhost:8000";
+const POLL_INTERVAL_MS = 2500;
 
 const LANGUAGE_LABELS: Record<DubLanguage, string> = {
   en: "English",
@@ -50,7 +41,7 @@ function normalizeSegments(result: any): Record<string, ApiTimedSegment[]> {
 
   for (const [lang, segments] of Object.entries(result.subtitles ?? {})) {
     if (lang.endsWith("_error") || !Array.isArray(segments)) continue;
-    normalized[lang] = segments.map((seg: any) => ({
+    normalized[lang] = (segments as any[]).map((seg: any) => ({
       id: seg.id,
       start: Number(seg.start),
       end: Number(seg.end),
@@ -71,7 +62,12 @@ function normalizeSegments(result: any): Record<string, ApiTimedSegment[]> {
   return normalized;
 }
 
-function toVisibleSegments(segments: ApiTimedSegment[], currentTime: number): TranscriptSegment[] {
+function toVisibleSegments(
+  segments: ApiTimedSegment[],
+  currentTime: number,
+  hasStartedPlaying: boolean
+): TranscriptSegment[] {
+  if (!hasStartedPlaying) return [];
   return segments.filter((seg) => currentTime >= seg.start).map((seg) => ({
     id: String(seg.id),
     speaker: seg.speaker,
@@ -87,23 +83,103 @@ function toVisibleSegments(segments: ApiTimedSegment[], currentTime: number): Tr
 
 export default function Home() {
   const [dubLanguage, setDubLanguage] = useState<DubLanguage>("en");
-  const [selectedVideo, setSelectedVideo] = useState<string | null>("messi-interview.mp4");
-  const [pipelineStatus] = useState<PipelineStatus>("complete");
-  const [segmentsByLanguage] = useState<Record<string, ApiTimedSegment[]>>(() => normalizeSegments(messiResult));
-  const [inferenceTime] = useState<number | null>(messiResult.processing_time_seconds ?? 5.4);
+  const [selectedVideo, setSelectedVideo] = useState<string | null>(null);
+  const [pipelineStatus, setPipelineStatus] = useState<PipelineStatus>("idle");
+  const [segmentsByLanguage, setSegmentsByLanguage] = useState<Record<string, ApiTimedSegment[]>>({});
+  const [inferenceTime, setInferenceTime] = useState<number | null>(null);
+  const [firstChunkTime, setFirstChunkTime] = useState<number | null>(null);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [currentTime, setCurrentTime] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
+  const [hasStartedPlaying, setHasStartedPlaying] = useState(false);
   const lastSpokenIdRef = useRef<string | null>(null);
+  const pollTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const transcriptionStartRef = useRef<number | null>(null);
 
-  // Hook up browser SpeechSynthesis for TTS dubs
   const { isMuted: isTtsMuted, toggleMute: onToggleTtsMute, speak, stop: stopSpeech } = useTTS();
+
+  const stopPolling = useCallback(() => {
+    if (pollTimerRef.current) {
+      clearInterval(pollTimerRef.current);
+      pollTimerRef.current = null;
+    }
+  }, []);
+
+  const startTranscription = useCallback(async (filename: string) => {
+    stopPolling();
+    setPipelineStatus("processing");
+    setSegmentsByLanguage({});
+    setInferenceTime(null);
+    setFirstChunkTime(null);
+    setErrorMessage(null);
+    setHasStartedPlaying(false);
+    transcriptionStartRef.current = Date.now();
+
+    try {
+      const res = await fetch("/api/transcribe", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ filename, targetLanguages: ["en", "es", "de"] }),
+      });
+      if (!res.ok) throw new Error(`Transcribe request failed: ${res.status}`);
+      const { job_id } = await res.json();
+
+      pollTimerRef.current = setInterval(async () => {
+        try {
+          const statusRes = await fetch(`${FASTAPI_URL}/jobs/${job_id}`);
+          if (!statusRes.ok) return;
+          const job = await statusRes.json();
+
+          if (job.partial_transcript?.segments?.length > 0 && job.status === "processing") {
+            setSegmentsByLanguage(normalizeSegments({
+              transcript: job.partial_transcript,
+              subtitles: job.partial_subtitles ?? {},
+            }));
+            setPipelineStatus((prev) => {
+              if (prev === "processing" && transcriptionStartRef.current) {
+                setFirstChunkTime(Math.round((Date.now() - transcriptionStartRef.current) / 100) / 10);
+              }
+              return "partial";
+            });
+          }
+          if (job.status === "complete" && job.result) {
+            stopPolling();
+            setSegmentsByLanguage(normalizeSegments(job.result));
+            setInferenceTime(job.result.processing_time_seconds ?? null);
+            setPipelineStatus("complete");
+          } else if (job.status === "error") {
+            stopPolling();
+            setErrorMessage(job.error ?? "Transcription failed.");
+            setPipelineStatus("error");
+          }
+        } catch {
+          // transient poll error — keep polling
+        }
+      }, POLL_INTERVAL_MS);
+    } catch (err: any) {
+      setErrorMessage(err.message ?? "Failed to start transcription.");
+      setPipelineStatus("error");
+    }
+  }, [stopPolling]);
 
   const handleVideoSelect = useCallback((filename: string) => {
     setSelectedVideo(filename);
     setCurrentTime(0);
+    setIsPlaying(false);
+    setHasStartedPlaying(false);
     lastSpokenIdRef.current = null;
     stopSpeech();
-  }, [stopSpeech]);
+    startTranscription(filename);
+  }, [stopSpeech, startTranscription]);
+
+  const handlePlayChange = useCallback((playing: boolean) => {
+    setIsPlaying(playing);
+    if (playing) setHasStartedPlaying(true);
+  }, []);
+
+  useEffect(() => () => stopPolling(), [stopPolling]);
+
+  const isLanguageReady = dubLanguage in segmentsByLanguage;
 
   const selectedLanguageSegments = useMemo(
     () => segmentsByLanguage[dubLanguage] ?? segmentsByLanguage.en ?? [],
@@ -111,34 +187,29 @@ export default function Home() {
   );
 
   const visibleSegments = useMemo(
-    () => toVisibleSegments(selectedLanguageSegments, currentTime),
-    [currentTime, selectedLanguageSegments]
+    () => toVisibleSegments(selectedLanguageSegments, currentTime, hasStartedPlaying),
+    [currentTime, selectedLanguageSegments, hasStartedPlaying]
   );
 
-  // Identify the active segment text for display as subtitle overlay
-  const activeSegment = useMemo(() => {
-    return visibleSegments.find((seg) => seg.isActive);
-  }, [visibleSegments]);
+  const activeSegment = useMemo(
+    () => visibleSegments.find((seg) => seg.isActive),
+    [visibleSegments]
+  );
 
-  // Compute video player volume (ducking original audio to 15% when TTS is speaking, unless listening to native Spanish)
   const videoVolume = useMemo(() => {
-    if (dubLanguage === "es" || isTtsMuted || !activeSegment) {
-      return 1.0;
-    }
+    if (dubLanguage === "es" || isTtsMuted || !activeSegment) return 1.0;
     return 0.15;
   }, [dubLanguage, isTtsMuted, activeSegment]);
 
-  // Trigger TTS dubbing in sync with active segment
   useEffect(() => {
-    // If video is paused, or we are listening to native Spanish, do not use TTS dubs
     if (!isPlaying || dubLanguage === "es") {
       stopSpeech();
       return;
     }
-
     if (activeSegment) {
-      if (lastSpokenIdRef.current !== activeSegment.id) {
-        lastSpokenIdRef.current = activeSegment.id;
+      const key = `${dubLanguage}:${activeSegment.id}`;
+      if (lastSpokenIdRef.current !== key) {
+        lastSpokenIdRef.current = key;
         speak(activeSegment.text, dubLanguage);
       }
     } else {
@@ -153,7 +224,7 @@ export default function Home() {
         <VideoPlayer
           onVideoSelect={handleVideoSelect}
           onTimeChange={setCurrentTime}
-          onPlayChange={setIsPlaying}
+          onPlayChange={handlePlayChange}
           activeSegmentText={activeSegment?.text}
           volume={videoVolume}
         />
@@ -168,9 +239,10 @@ export default function Home() {
           inferenceTime={inferenceTime}
           selectedVideo={selectedVideo}
           currentTime={currentTime}
-          languageLabel={LANGUAGE_LABELS[dubLanguage]}
+          languageLabel={isLanguageReady ? LANGUAGE_LABELS[dubLanguage] : `${LANGUAGE_LABELS[dubLanguage]} (translating…)`}
+          firstChunkTime={firstChunkTime}
           totalSegments={selectedLanguageSegments.length}
-          errorMessage={null}
+          errorMessage={errorMessage}
           isTtsMuted={isTtsMuted}
           onToggleTtsMute={onToggleTtsMute}
         />

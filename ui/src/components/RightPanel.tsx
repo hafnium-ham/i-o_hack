@@ -3,7 +3,7 @@
 import TranscriptionPanel, { type TranscriptSegment } from "./TranscriptionPanel";
 import DubSelector, { type DubLanguage } from "./DubSelector";
 
-type PipelineStatus = "idle" | "processing" | "complete" | "error";
+type PipelineStatus = "idle" | "processing" | "partial" | "complete" | "error";
 
 type Props = {
   dubLanguage: DubLanguage;
@@ -11,6 +11,7 @@ type Props = {
   segments: TranscriptSegment[];
   pipelineStatus: PipelineStatus;
   inferenceTime: number | null;
+  firstChunkTime: number | null;
   selectedVideo: string | null;
   currentTime: number;
   languageLabel: string;
@@ -26,6 +27,7 @@ export default function RightPanel({
   segments,
   pipelineStatus,
   inferenceTime,
+  firstChunkTime,
   selectedVideo,
   currentTime,
   languageLabel,
@@ -72,6 +74,7 @@ export default function RightPanel({
           segments={segments}
           pipelineStatus={pipelineStatus}
           inferenceTime={inferenceTime}
+          firstChunkTime={firstChunkTime}
           currentTime={currentTime}
           languageLabel={languageLabel}
           totalSegments={totalSegments}

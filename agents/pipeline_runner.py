@@ -11,13 +11,13 @@ load_env_files()
 from agents import agent1_ingest, agent2_transcribe, agent3_translate, agent4_stats, agent5_analysis, output_assembler
 
 
-def run_pipeline(raw_input: dict) -> dict:
+def run_pipeline(raw_input: dict, on_partial_transcript=None) -> dict:
     started_at = time.time()
     payload = dict(raw_input)
     payload.setdefault("job_id", str(uuid.uuid4()))
 
     audio = agent1_ingest.run(payload)
-    transcript = agent2_transcribe.run(audio)
+    transcript = agent2_transcribe.run(audio, on_partial=on_partial_transcript)
     transcript["target_languages"] = payload.get("target_languages", audio.get("target_languages", []))
 
     with ThreadPoolExecutor(max_workers=3) as executor:

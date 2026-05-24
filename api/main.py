@@ -42,16 +42,22 @@ class JobStatus(BaseModel):
     status: str
     result: dict[str, Any] | None = None
     error: str | None = None
+    partial_transcript: dict[str, Any] | None = None
+    partial_subtitles: dict[str, Any] | None = None
 
 
 async def _run_direct(job_id: str, request: ProcessRequest) -> dict:
+    def on_partial(partial: dict) -> None:
+        JOB_STORE[job_id]["partial_transcript"] = partial.get("transcript", partial)
+        JOB_STORE[job_id]["partial_subtitles"] = partial.get("subtitles", {})
+
     payload = RawInput(
         job_id=job_id,
         source_type=request.source_type,
         source_value=request.source_value,
         target_languages=request.target_languages,
     ).model_dump()
-    return await asyncio.to_thread(run_pipeline, payload)
+    return await asyncio.to_thread(run_pipeline, payload, on_partial)
 
 
 async def _run_rocketride(job_id: str, request: ProcessRequest) -> dict:
@@ -85,7 +91,7 @@ async def _run_job(job_id: str, request: ProcessRequest) -> None:
 @app.post("/process", response_model=JobStatus)
 async def submit_job(request: ProcessRequest, background_tasks: BackgroundTasks) -> JobStatus:
     job_id = str(uuid.uuid4())
-    JOB_STORE[job_id] = {"status": "queued", "result": None, "error": None}
+    JOB_STORE[job_id] = {"status": "queued", "result": None, "error": None, "partial_transcript": None, "partial_subtitles": None}
     background_tasks.add_task(_run_job, job_id, request)
     return JobStatus(job_id=job_id, status="queued")
 
@@ -101,10 +107,17 @@ async def process_sync(request: ProcessRequest) -> dict:
 async def get_job(job_id: str) -> JobStatus:
     if job_id not in JOB_STORE:
         raise HTTPException(status_code=404, detail="Job not found")
-    return JobStatus(job_id=job_id, **JOB_STORE[job_id])
+    job = JOB_STORE[job_id]
+    return JobStatus(
+        job_id=job_id,
+        status=job["status"],
+        result=job.get("result"),
+        error=job.get("error"),
+        partial_transcript=job.get("partial_transcript"),
+        partial_subtitles=job.get("partial_subtitles"),
+    )
 
 
 @app.get("/health")
 async def health() -> dict:
     return {"status": "ok", "mode_default": "direct"}
-
